@@ -159,6 +159,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
         }
     }
 
+    @SuppressWarnings("UnreachableCode")
     @Override
     public void onInitialize() {
         // PlayerDataStorage.initialize(); // 移除这行，因为这里还没有服务器实例
