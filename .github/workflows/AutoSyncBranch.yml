@@ -1,0 +1,34 @@
+# 同步git@github.com:onixary/shape-shifter-curse-fabric.git中的master和dev_patreon_content分支到当前仓库的master和dev_patreon_content分支
+
+name: 自动同步分支
+on:
+  # schedule:  # 每天凌晨3点同步(这个点我肯定睡了)
+  #   - cron: '0 3 * * *'
+  workflow_dispatch:  # 手动触发
+jobs:
+  sync_branch:
+      runs-on: ubuntu-latest
+      steps:
+        - name: 签出当前仓库
+          uses: actions/checkout@v4
+        - name: 获取远程仓库
+          run: |
+            git remote add upstream https://github.com/onixary/shape-shifter-curse-fabric.git
+            git fetch upstream
+        - name: 同步 master 分支  # 仅使用快速前进合并
+          run: |
+            git checkout master
+            if git merge --ff-only upstream/master; then
+              git push origin master
+            else
+              echo "master 分支无法快速前进合并，跳过同步"
+            fi
+        - name: 同步 dev_patreon_content 分支  # 仅使用快速前进合并
+          run: |
+            git checkout dev_patreon_content
+            if git merge --ff-only upstream/dev_patreon_content; then
+              git push origin dev_patreon_content
+            else
+              echo "dev_patreon_content 分支无法快速前进合并，跳过同步"
+            fi
+
