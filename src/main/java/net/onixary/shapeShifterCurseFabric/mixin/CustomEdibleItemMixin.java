@@ -7,9 +7,14 @@ import net.minecraft.item.FoodComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
+import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
+import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static net.onixary.shapeShifterCurseFabric.util.CustomEdibleUtils.getPowerFoodComponent;
 
@@ -100,6 +105,10 @@ public abstract class CustomEdibleItemMixin {
     }
      */
 
+    /*
+
+    // 比较精细的修改 但与新雅互联不兼容
+
     @ModifyExpressionValue(method = "use", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/Item;isFood()Z"))
     private boolean use$isFood(boolean original, World world, PlayerEntity user, Hand hand) {
         return getPowerFoodComponent(user, user.getStackInHand(hand)) != null || original;
@@ -119,5 +128,33 @@ public abstract class CustomEdibleItemMixin {
         return getPowerFoodComponent((PlayerEntity) user, stack) != null || original;
     }
 
+     */
+
+    // 粗糙的修改 但兼容新雅互联
+
+    @Inject(method = "use", at = @At("HEAD"), cancellable = true)
+    private void use(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
+        ItemStack stack = user.getStackInHand(hand);
+        FoodComponent fc = getPowerFoodComponent(user, stack);
+        if (fc != null)  {
+            ItemStack itemStack = user.getStackInHand(hand);
+            if (user.canConsume(fc.isAlwaysEdible())) {
+                user.setCurrentHand(hand);
+                cir.setReturnValue(TypedActionResult.consume(itemStack));
+            } else {
+                cir.setReturnValue(TypedActionResult.fail(itemStack));
+            }
+        }
+    }
+
+    @Inject(method = "finishUsing", at = @At("HEAD"), cancellable = true)
+    private void finishUsing(ItemStack stack, World world, LivingEntity user, CallbackInfoReturnable<ItemStack> cir) {
+        if (user instanceof PlayerEntity pe) {
+            FoodComponent fc = getPowerFoodComponent(pe, stack);
+            if (fc != null) {
+                cir.setReturnValue(user.eatFood(world, stack));
+            }
+        }
+    }
 }
 
