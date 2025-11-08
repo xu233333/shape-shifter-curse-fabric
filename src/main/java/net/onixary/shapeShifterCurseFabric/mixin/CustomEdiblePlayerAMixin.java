@@ -123,7 +123,7 @@ public class CustomEdiblePlayerAMixin {
     }
 
     @ModifyExpressionValue(method = "spawnConsumptionEffects", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;getUseAction()Lnet/minecraft/util/UseAction;"))
-    private UseAction applyFoodEffects$isFood(UseAction original, ItemStack stack, int particleCount) {
+    private UseAction spawnConsumptionEffects$getUseAction(UseAction original, ItemStack stack, int particleCount) {
         ShapeShifterCurseFabric.LOGGER.info("SSC-B8");
         if ((Object)this instanceof PlayerEntity playerEntity) {
             FoodComponent fc = getPowerFoodComponent(playerEntity, activeItemStack);
