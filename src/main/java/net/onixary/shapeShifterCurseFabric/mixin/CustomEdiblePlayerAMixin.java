@@ -1,6 +1,5 @@
 package net.onixary.shapeShifterCurseFabric.mixin;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.data.TrackedData;
@@ -11,11 +10,9 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Hand;
-import net.minecraft.util.UseAction;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import net.minecraft.world.event.GameEvent;
-import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -39,18 +36,14 @@ public class CustomEdiblePlayerAMixin {
 
     @ModifyExpressionValue(method = "eatFood", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isFood()Z"))
     private boolean eatFood$isFood(boolean original, World world, ItemStack stack) {
-        // ShapeShifterCurseFabric.LOGGER.info("SSC-B1");
         if ((Object)this instanceof PlayerEntity playerEntity) {
             return getPowerFoodComponent(playerEntity, stack) != null || original;
         }
         return original;
     }
 
-
-
     @ModifyExpressionValue(method = "applyFoodEffects", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/Item;isFood()Z"))
     private boolean applyFoodEffects$isFood(boolean original, ItemStack stack, World world, LivingEntity targetEntity) {
-        // ShapeShifterCurseFabric.LOGGER.info("SSC-B2");
         if ((Object)this instanceof PlayerEntity playerEntity) {
             return getPowerFoodComponent(playerEntity, stack) != null || original;
         }
@@ -59,7 +52,6 @@ public class CustomEdiblePlayerAMixin {
 
     @ModifyExpressionValue(method = "applyFoodEffects", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/Item;getFoodComponent()Lnet/minecraft/item/FoodComponent;"))
     private FoodComponent applyFoodEffects$getFoodComponent(FoodComponent original, ItemStack stack, World world, LivingEntity targetEntity) {
-        // ShapeShifterCurseFabric.LOGGER.info("SSC-B3");
         if (targetEntity instanceof PlayerEntity playerEntity) {
             FoodComponent fc = getPowerFoodComponent(playerEntity, stack);
             if (fc == null) {
@@ -72,7 +64,6 @@ public class CustomEdiblePlayerAMixin {
 
     @ModifyExpressionValue(method = "shouldSpawnConsumptionEffects", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;getMaxUseTime()I"))
     private int shouldSpawnConsumptionEffects$getMaxUseTime(int original) {
-        // ShapeShifterCurseFabric.LOGGER.info("SSC-B4");
         if ((Object)this instanceof PlayerEntity playerEntity) {
             FoodComponent fc = getPowerFoodComponent(playerEntity, activeItemStack);
             if (fc == null) {
@@ -85,7 +76,6 @@ public class CustomEdiblePlayerAMixin {
 
     @ModifyExpressionValue(method = "onTrackedDataSet", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;getMaxUseTime()I"))
     private int onTrackedDataSet$getMaxUseTime(int original) {
-        // ShapeShifterCurseFabric.LOGGER.info("SSC-B5");
         if ((Object)this instanceof PlayerEntity playerEntity) {
             FoodComponent fc = getPowerFoodComponent(playerEntity, activeItemStack);
             if (fc == null) {
@@ -98,7 +88,6 @@ public class CustomEdiblePlayerAMixin {
 
     @ModifyExpressionValue(method = "setCurrentHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;getMaxUseTime()I"))
     private int setCurrentHand$getMaxUseTime(int original) {
-        // ShapeShifterCurseFabric.LOGGER.info("SSC-B6");
         if ((Object)this instanceof PlayerEntity playerEntity) {
             FoodComponent fc = getPowerFoodComponent(playerEntity, activeItemStack);
             if (fc == null) {
@@ -111,8 +100,7 @@ public class CustomEdiblePlayerAMixin {
 
     @ModifyExpressionValue(method = "shouldSpawnConsumptionEffects", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/Item;getFoodComponent()Lnet/minecraft/item/FoodComponent;"))
     private FoodComponent shouldSpawnConsumptionEffects$getFoodComponent(FoodComponent original) {
-        ShapeShifterCurseFabric.LOGGER.info("SSC-B7");
-        if ((Object) this instanceof PlayerEntity playerEntity) {
+        if ((Object)this instanceof PlayerEntity playerEntity) {
             FoodComponent fc = getPowerFoodComponent(playerEntity, activeItemStack);
             if (fc == null) {
                 return original;
@@ -124,7 +112,6 @@ public class CustomEdiblePlayerAMixin {
 
     @ModifyExpressionValue(method = "spawnConsumptionEffects", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;getUseAction()Lnet/minecraft/util/UseAction;"))
     private UseAction spawnConsumptionEffects$getUseAction(UseAction original, ItemStack stack, int particleCount) {
-        ShapeShifterCurseFabric.LOGGER.info("SSC-B8");
         if ((Object)this instanceof PlayerEntity playerEntity) {
             FoodComponent fc = getPowerFoodComponent(playerEntity, activeItemStack);
             if (fc == null) {
