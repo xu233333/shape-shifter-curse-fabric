@@ -145,18 +145,19 @@ public class CustomEdiblePlayerAMixin {
     @Inject(method = "applyFoodEffects", at = @At(value = "HEAD"), cancellable = true)
     private void applyFoodEffectsMixin(ItemStack stack, World world, LivingEntity targetEntity, CallbackInfo ci) {
         Item item = stack.getItem();
-        FoodComponent fc = getPowerFoodComponent((PlayerEntity)targetEntity, stack);
-        if (fc != null)  {
-            List<Pair<StatusEffectInstance, Float>> list = fc.getStatusEffects();
-            Iterator var6 = list.iterator();
-
-            while(var6.hasNext()) {
-                Pair<StatusEffectInstance, Float> pair = (Pair)var6.next();
-                if (!world.isClient && pair.getFirst() != null && world.random.nextFloat() < (Float)pair.getSecond()) {
-                    targetEntity.addStatusEffect(new StatusEffectInstance((StatusEffectInstance)pair.getFirst()));
+        if (targetEntity instanceof PlayerEntity targetPlayerEntity) {
+            FoodComponent fc = getPowerFoodComponent(targetPlayerEntity, stack);
+            if (fc != null) {
+                List<Pair<StatusEffectInstance, Float>> list = fc.getStatusEffects();
+                Iterator var6 = list.iterator();
+                while (var6.hasNext()) {
+                    Pair<StatusEffectInstance, Float> pair = (Pair) var6.next();
+                    if (!world.isClient && pair.getFirst() != null && world.random.nextFloat() < (Float) pair.getSecond()) {
+                        targetPlayerEntity.addStatusEffect(new StatusEffectInstance((StatusEffectInstance) pair.getFirst()));
+                    }
                 }
+                ci.cancel();
             }
-            ci.cancel();
         }
     }
 
