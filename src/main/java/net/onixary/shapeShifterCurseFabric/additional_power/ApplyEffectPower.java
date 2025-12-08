@@ -60,6 +60,12 @@ public class ApplyEffectPower extends Power {
         this.storeEffects.clear();
     }
 
+    public void onRemoved() {
+        if (this.isApplied) {
+            this.RemoveEffects();
+        }
+    }
+
     public static PowerFactory<?> createFactory() {
         return new PowerFactory<>(
                 ShapeShifterCurseFabric.identifier("apply_effect"),
