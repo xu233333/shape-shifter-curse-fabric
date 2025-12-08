@@ -182,8 +182,10 @@ dependencies {
     //include "io.github.ladysnake:PlayerAbilityLib:${pal_version}"
 
     // Apoli by Apace100
-    modImplementation "com.github.apace100:apoli:${project.apoli_version}"
-    include "com.github.apace100:apoli:${project.apoli_version}"
+    modCompileOnly "com.github.apace100:apoli:${project.apoli_version}"
+    modRuntimeOnly "com.github.apace100:apoli:${project.apoli_version}"
+    // 手动包含Apoli 2.9.2 Apoli作者给的仓库里没有2.9.2的版本 暂时使用META-INF/jars来包含
+    // include "com.github.apace100:apoli:${project.apoli_version}"
 
     modApi("com.github.Virtuoel:Pehkui:${pehkui_version}", {
         exclude group: "net.fabricmc.fabric-api"
