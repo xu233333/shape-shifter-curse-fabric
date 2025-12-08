@@ -17,7 +17,7 @@
                 "compare_to": 6
             },
             {
-                "type": "origins:fluid_height",
+                "type": "shape-shifter-curse:fluid_height",
                 "fluid": "minecraft:water",
                 "comparison": "<=",
                 "compare_to": 0
