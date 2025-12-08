@@ -1,0 +1,18 @@
+{
+  "type": "shape-shifter-curse:apply_effect",
+  "status_effects": [
+    {
+      "effect": "minecraft:night_vision",
+      "duration": 1000000000,
+      "amplifier": 0,
+      "show_particles": false,
+      "show_icon": false
+    }
+  ],
+  "condition": {
+    "type": "shape-shifter-curse:fluid_height",
+    "fluid": "minecraft:water",
+    "comparison": ">",
+    "compare_to": 0
+  }
+}
