@@ -44,9 +44,11 @@ import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.Transformat
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.axolotl.TransformativeAxolotlEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.bat.TransformativeBatEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.ocelot.TransformativeOcelotEntity;
+import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.wolf.TransformativeWolfEntity;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomPotions;
 import net.onixary.shapeShifterCurseFabric.minion.MinionRegister;
+import net.onixary.shapeShifterCurseFabric.minion.RegPlayerMinionComponent;
 import net.onixary.shapeShifterCurseFabric.networking.ModPacketsC2S;
 import net.onixary.shapeShifterCurseFabric.networking.ModPacketsS2CServer;
 import net.onixary.shapeShifterCurseFabric.player_animation.form_animation.AnimationTransform;
@@ -134,6 +136,15 @@ public class ShapeShifterCurseFabric implements ModInitializer {
                     .dimensions(EntityDimensions.fixed(0.5f, 0.5f))
                     .build()
     );
+
+    public static final EntityType<TransformativeWolfEntity> T_WOLF = Registry.register(
+            Registries.ENTITY_TYPE,
+            new Identifier(ShapeShifterCurseFabric.MOD_ID, "t_wolf"),
+            FabricEntityTypeBuilder.create(SpawnGroup.CREATURE, TransformativeWolfEntity::new)
+                .dimensions(EntityDimensions.fixed(0.5f, 0.5f))
+                .build()
+    );
+
 
     private int save_timer = 0;
 
@@ -229,9 +240,10 @@ public class ShapeShifterCurseFabric implements ModInitializer {
                 CustomFormArgumentType.class,
                 ConstantArgumentSerializer.of(CustomFormArgumentType::new)
         );
-
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             PlayerEntity player = handler.player;
+            // 清空玩家召唤物
+            MinionRegister.DisSpawnAllMinion(player);
             LOGGER.info("Player disconnect, save attachment");
             // saveCurrentAttachment(server.getOverworld(), player);
             saveForm(player);

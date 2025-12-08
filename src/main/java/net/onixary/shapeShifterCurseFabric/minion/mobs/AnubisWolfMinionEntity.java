@@ -1,9 +1,6 @@
 package net.onixary.shapeShifterCurseFabric.minion.mobs;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityGroup;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.ai.pathing.PathNodeType;
 import net.minecraft.entity.attribute.*;
@@ -21,20 +18,36 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
+import net.minecraft.world.LocalDifficulty;
+import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.minion.IMinion;
 import net.onixary.shapeShifterCurseFabric.minion.IPlayerEntityMinion;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
-public class WolfMinion extends WolfEntity implements IMinion<WolfMinion> {
-    public static final Identifier MinionID = ShapeShifterCurseFabric.identifier("wolf_minion");
+public class AnubisWolfMinionEntity extends WolfEntity implements IMinion<AnubisWolfMinionEntity> {
+    public static final Identifier MinionID = ShapeShifterCurseFabric.identifier("anubis_wolf_minion");
 
-    public WolfMinion(EntityType<? extends WolfMinion> entityType, World world) {
+    public AnubisWolfMinionEntity(EntityType<? extends AnubisWolfMinionEntity> entityType, World world) {
         super(entityType, world);
         this.setPathfindingPenalty(PathNodeType.POWDER_SNOW, -1.0F);
         this.setPathfindingPenalty(PathNodeType.DANGER_POWDER_SNOW, -1.0F);
+    }
+
+    @Override
+    public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
+        PassiveData data;
+        if (entityData instanceof PassiveData passiveData) {
+            passiveData.babyAllowed = false;
+            data = passiveData;
+        }
+        else {
+            data = new PassiveData(false);
+        }
+        return super.initialize(world, difficulty, spawnReason, data, entityNbt);
     }
 
     public int MinionLevel = 1;
@@ -90,7 +103,7 @@ public class WolfMinion extends WolfEntity implements IMinion<WolfMinion> {
     }
 
     @Override
-    public WolfMinion getSelf() {
+    public AnubisWolfMinionEntity getSelf() {
         return this;
     }
 
@@ -128,14 +141,17 @@ public class WolfMinion extends WolfEntity implements IMinion<WolfMinion> {
             return;
         }
         switch (MinionLevel) {
+            // 默认参数似乎直接break不会生效，依然要设置下
             case 1:
+                health.setBaseValue(10.0d);
+                attack_damage.setBaseValue(2.0d);
                 break;
             case 2:
                 health.setBaseValue(16.0d);
                 attack_damage.setBaseValue(3.0d);
                 break;
             case 3:
-                health.setBaseValue(24.0d);
+                health.setBaseValue(20.0d);
                 attack_damage.setBaseValue(4.0d);
                 break;
             default:
@@ -145,6 +161,28 @@ public class WolfMinion extends WolfEntity implements IMinion<WolfMinion> {
         if (modifyHP) {
             this.setHealth((float) health.getValue());
         }
+    }
+
+    @Override
+    public boolean tryAttack(Entity target) {
+        boolean IsSuccess = super.tryAttack(target);
+        LivingEntity Owner = this.getOwner();
+        if (Owner == null) {
+            return IsSuccess;
+        }
+        if (IsSuccess) {
+            switch (MinionLevel) {
+                case 1:
+                    break;
+                case 2:
+                    Owner.heal(1.0f);
+                case 3:
+                    Owner.heal(2.0f);
+                default:
+                    break;
+            }
+        }
+        return IsSuccess;
     }
 
     @Override
@@ -186,8 +224,9 @@ public class WolfMinion extends WolfEntity implements IMinion<WolfMinion> {
 
     @Override
     public void applyDamageEffects(LivingEntity attacker, Entity target) {
-        if (attacker instanceof WolfMinion minion && target instanceof LivingEntity livingEntity)  {
-            livingEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, 20 * minion.MinionLevel, 2));
+        if (attacker instanceof AnubisWolfMinionEntity minion && target instanceof LivingEntity livingEntity)  {
+            // 额外加5tick防止效果消失在伤害判定边缘
+            livingEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, 20 * minion.MinionLevel + 5, 2));
         }
         super.applyDamageEffects(attacker, target);
     }
@@ -201,12 +240,15 @@ public class WolfMinion extends WolfEntity implements IMinion<WolfMinion> {
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
         nbt.putInt("MinionLevel", this.MinionLevel);
+        nbt.putFloat("MinionHealth", this.getHealth());  // 原版Bug不知道什么时候修
     }
 
     @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
         this.MinionLevel = nbt.getInt("MinionLevel");
+        this.ApplyMinionLevel(false);
+        this.setHealth(nbt.getFloat("MinionHealth"));
     }
 
     public double getMinionDisappearRange() {
@@ -234,7 +276,7 @@ public class WolfMinion extends WolfEntity implements IMinion<WolfMinion> {
     }
 
     protected SoundEvent getHurtSound(DamageSource source) {
-        return SoundEvents.ENTITY_WITHER_SKELETON_HURT;
+        return SoundEvents.ENTITY_VEX_HURT;
     }
 
     protected SoundEvent getDeathSound() {
@@ -258,7 +300,7 @@ public class WolfMinion extends WolfEntity implements IMinion<WolfMinion> {
 
     class WolfMinionEscapeDangerGoal extends EscapeDangerGoal {
         public WolfMinionEscapeDangerGoal(double speed) {
-            super(WolfMinion.this, speed);
+            super(AnubisWolfMinionEntity.this, speed);
         }
 
         protected boolean isInDanger() {
