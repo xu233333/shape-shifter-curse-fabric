@@ -14,6 +14,8 @@ public class AdditionalEntityActions {
         registerAction(ExplosionDamageEntityAction.createFactory());
         registerAction(SummonMinionWolfNearbyAction.createFactory());
         registerBIAction(SummonMinionWolfNearbyAction.createBIFactory());
+        PlayPowerAnimationAction.register(AdditionalEntityActions::registerAction, AdditionalEntityActions::registerBIAction);
+        ManaUtilsApoli.registerAction(AdditionalEntityActions::registerAction, AdditionalEntityActions::registerBIAction);
     }
 
     public static ActionFactory<Entity> registerAction(ActionFactory<Entity> actionFactory) {

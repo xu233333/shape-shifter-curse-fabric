@@ -18,12 +18,15 @@ import java.util.List;
 
 public class ApplyEffectPower extends Power {
 
-    List<StatusEffectInstance> effects;
-    List<StatusEffectInstance> storeEffects;
-    boolean isApplied = false;
+    private final List<StatusEffectInstance> effects;
+    private final List<StatusEffectInstance> storeEffects;
+    private boolean isApplied = false;
 
     public ApplyEffectPower(PowerType<?> type, LivingEntity entity, List<StatusEffectInstance> effects) {
         super(type, entity);
+        if (effects == null) {
+            effects = new ArrayList<>();
+        }
         this.effects = effects;
         this.storeEffects = new ArrayList<>();
         this.setTicking(true);

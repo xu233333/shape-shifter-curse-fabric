@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.advancement.criterion.Criteria;
 import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
 import net.minecraft.entity.EntityDimensions;
@@ -47,6 +48,7 @@ import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.ocelot.Tran
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.wolf.TransformativeWolfEntity;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomPotions;
+import net.onixary.shapeShifterCurseFabric.mana.ManaUtils;
 import net.onixary.shapeShifterCurseFabric.minion.MinionRegister;
 import net.onixary.shapeShifterCurseFabric.minion.RegPlayerMinionComponent;
 import net.onixary.shapeShifterCurseFabric.networking.ModPacketsC2S;
@@ -65,6 +67,7 @@ import net.onixary.shapeShifterCurseFabric.status_effects.RegTStatusPotionEffect
 import net.onixary.shapeShifterCurseFabric.status_effects.attachment.EffectManager;
 import net.onixary.shapeShifterCurseFabric.util.PlayerEventHandler;
 import net.onixary.shapeShifterCurseFabric.util.TickManager;
+import net.onixary.shapeShifterCurseFabric.util.TrinketDataPackReloadListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -218,6 +221,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
         });
         // 获取动态Form(DataPack)
         ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new FormDataPackReloadListener());
+        ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new TrinketDataPackReloadListener());
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> server.getPlayerManager().getPlayerList().forEach((player) -> {
             ModPacketsS2CServer.updateDynamicForm(player);
             if (!player.getComponent(RegPlayerFormComponent.PLAYER_FORM).isCurrentFormExist()) {
@@ -342,6 +346,9 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             // CustomEdiblePower Tick
             CustomEdiblePower.OnServerTick(player);
 
+            // Mana System
+            ManaUtils.manaTick(player);
+
             /* 重构后不需要了 仅用于参考旧实现逻辑
             // handle transformative effects tick
             PlayerEffectAttachment attachment = player.getAttached(EffectManager.EFFECT_ATTACHMENT);
@@ -372,5 +379,10 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             }
              */
         }
+    }
+
+    // 用于实现一些日志功能 仅用于特定日志 禁止用于其他用途 防止造成开发环境混乱
+    public static boolean IsDevelopmentEnvironment() {
+        return FabricLoader.getInstance().isDevelopmentEnvironment();
     }
 }

@@ -46,7 +46,13 @@
     "HungerManagerMixin",
     "EntityLootingMixin",
     "BlockDropMixin",
-    "ScareSkeletonMixin"
+    "ScareSkeletonMixin",
+    "PlayerAnimInterfaceMixin",
+    "TrinketItemMixin",
+    "PotionItemMixin",
+    "PotionEntityMixin",
+    "AreaEffectCloudEntityMixin",
+    "ArrowEntityMixin"
   ],
   "client": [
     "AdjustItemHoldFeatureRendererMixin",
@@ -60,7 +66,6 @@
     "GameRendererMixin",
     "IEntityRenderDispatcherAccessor",
     "InGameHudMixin",
-    "InstinctBarMixin",
     "InventoryScreenMixin",
     "KeyboardInputMixin",
     "MinecraftClientMixin",
