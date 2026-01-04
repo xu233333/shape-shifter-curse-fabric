@@ -2,9 +2,10 @@
     "type": "shape-shifter-curse:water_flexibility",
     "water_flex": 0.93,
     "condition": {
-        "type": "shape-shifter-curse:fluid_height",
-        "fluid": "minecraft:water",
-        "comparison": ">",
-        "compare_to": 0
+        "type": "origins:in_block",
+        "block_condition": {
+            "type": "origins:block",
+            "block": "minecraft:water"
+        }
     }
 }

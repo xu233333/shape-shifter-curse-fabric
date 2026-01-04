@@ -189,7 +189,6 @@ dependencies {
     modImplementation "io.github.apace100:apoli:${project.apoli_version}"
     include "io.github.apace100:apoli:${project.apoli_version}"
 
-
     modApi("com.github.Virtuoel:Pehkui:${pehkui_version}", {
         exclude group: "net.fabricmc.fabric-api"
     })

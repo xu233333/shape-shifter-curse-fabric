@@ -52,7 +52,11 @@
     "PotionItemMixin",
     "PotionEntityMixin",
     "AreaEffectCloudEntityMixin",
-    "ArrowEntityMixin"
+    "ArrowEntityMixin",
+    "LingeringPotionItemMixin",
+    "TippedArrowItemMixin",
+    "BrewingRecipeRegistryMixin",
+    "HissPhantomMixin"
   ],
   "client": [
     "AdjustItemHoldFeatureRendererMixin",

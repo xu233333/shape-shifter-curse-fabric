@@ -10,6 +10,7 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
@@ -231,14 +232,24 @@ public class ManaUtils {
         return getManaComponent(player).getMana();
     }
 
-    public static double getPlayerManaPercent(PlayerEntity player) {
-        ManaComponent manaComponent = getManaComponent(player);
-        // 突然想起来，如果maxMana为0，那么会导致除0错误。
-        double maxMana = manaComponent.getMaxMana();
+    public static double getPlayerMaxMana(PlayerEntity player) {
+        return getManaComponent(player).getMaxMana();
+    }
+
+    public static double getPlayerManaRegen(PlayerEntity player) {
+        return getManaComponent(player).getManaRegen();
+    }
+
+    public static double getManaPercent(double mana, double maxMana, double if0Result) {
         if (maxMana == 0.0d) {
-            return 0.0d;
+            return if0Result;
         }
-        return manaComponent.getMana() / maxMana;
+        return mana / maxMana;
+    }
+
+    public static double getPlayerManaPercent(PlayerEntity player, double if0Result) {
+        ManaComponent manaComponent = getManaComponent(player);
+        return getManaPercent(manaComponent.getMana(), manaComponent.getMaxMana(), if0Result);
     }
 
     public static Identifier getPlayerManaTypeID(PlayerEntity player) {
@@ -270,12 +281,16 @@ public class ManaUtils {
     }
 
     // 用于Power系统
-    public static void gainManaTypeID(PlayerEntity player, Identifier manaTypeID) {
-        getManaComponent(player).gainManaTypeID(manaTypeID);
+    public static void gainManaTypeID(PlayerEntity player, Identifier manaTypeID, Identifier sourceID) {
+        getManaComponent(player).gainManaTypeID(manaTypeID, sourceID);
     }
 
-    public static void loseManaTypeID(PlayerEntity player, Identifier manaTypeID) {
-        getManaComponent(player).loseManaTypeID(manaTypeID);
+    public static void loseManaTypeID(PlayerEntity player, Identifier manaTypeID, Identifier sourceID) {
+        getManaComponent(player).loseManaTypeID(manaTypeID, sourceID);
+    }
+
+    public static boolean isManaTypeExists(PlayerEntity player, @NotNull Identifier manaTypeID, @Nullable Identifier sourceID) {
+        return getManaComponent(player).isManaTypeExists(manaTypeID, sourceID);
     }
 
     // 用于其他非Power系统

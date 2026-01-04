@@ -46,11 +46,12 @@ import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.axolotl.Tra
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.bat.TransformativeBatEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.ocelot.TransformativeOcelotEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.wolf.TransformativeWolfEntity;
+import net.onixary.shapeShifterCurseFabric.blocks.RegCustomBlock;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomPotions;
+import net.onixary.shapeShifterCurseFabric.mana.ManaRegistries;
 import net.onixary.shapeShifterCurseFabric.mana.ManaUtils;
 import net.onixary.shapeShifterCurseFabric.minion.MinionRegister;
-import net.onixary.shapeShifterCurseFabric.minion.RegPlayerMinionComponent;
 import net.onixary.shapeShifterCurseFabric.networking.ModPacketsC2S;
 import net.onixary.shapeShifterCurseFabric.networking.ModPacketsS2CServer;
 import net.onixary.shapeShifterCurseFabric.player_animation.form_animation.AnimationTransform;
@@ -60,6 +61,8 @@ import net.onixary.shapeShifterCurseFabric.player_form.ability.FormAbilityManage
 import net.onixary.shapeShifterCurseFabric.player_form.ability.RegPlayerFormComponent;
 import net.onixary.shapeShifterCurseFabric.player_form.instinct.InstinctTicker;
 import net.onixary.shapeShifterCurseFabric.player_form.transform.TransformManager;
+import net.onixary.shapeShifterCurseFabric.recipes.BrewingRecipeReloadListener;
+import net.onixary.shapeShifterCurseFabric.recipes.RecipeSerializerRegister;
 import net.onixary.shapeShifterCurseFabric.screen_effect.TransformOverlay;
 import net.onixary.shapeShifterCurseFabric.status_effects.RegOtherStatusEffects;
 import net.onixary.shapeShifterCurseFabric.status_effects.RegTStatusEffect;
@@ -75,7 +78,6 @@ import java.util.List;
 
 import static net.onixary.shapeShifterCurseFabric.player_form.ability.FormAbilityManager.saveForm;
 import static net.onixary.shapeShifterCurseFabric.player_form.instinct.InstinctManager.saveInstinctComp;
-import static net.onixary.shapeShifterCurseFabric.status_effects.attachment.EffectManager.*;
 
 
 public class ShapeShifterCurseFabric implements ModInitializer {
@@ -175,6 +177,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
     public void onInitialize() {
         // PlayerDataStorage.initialize(); // 移除这行，因为这里还没有服务器实例
         RegCustomItem.initialize();
+        RegCustomBlock.initialize();
         RegTransformativeEntitySpawnEgg.initialize();
         RegTStatusEffect.initialize();
         RegTStatusPotionEffect.initialize();
@@ -214,6 +217,11 @@ public class ShapeShifterCurseFabric implements ModInitializer {
         RegCustomPotions.registerPotions();
         RegCustomPotions.registerPotionsRecipes();
 
+        // 注册配方
+        RecipeSerializerRegister.register();
+
+        ManaRegistries.register();
+
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             // 获取主世界作为默认世界
             ServerWorld overworld = server.getOverworld();
@@ -222,6 +230,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
         // 获取动态Form(DataPack)
         ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new FormDataPackReloadListener());
         ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new TrinketDataPackReloadListener());
+        ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new BrewingRecipeReloadListener());
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> server.getPlayerManager().getPlayerList().forEach((player) -> {
             ModPacketsS2CServer.updateDynamicForm(player);
             if (!player.getComponent(RegPlayerFormComponent.PLAYER_FORM).isCurrentFormExist()) {
