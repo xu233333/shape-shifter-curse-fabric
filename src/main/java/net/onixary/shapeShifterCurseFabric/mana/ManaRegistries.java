@@ -42,7 +42,7 @@ public class ManaRegistries {
 
     public static final Identifier MC_AlwaysTrue = registerManaConditionType(ShapeShifterCurseFabric.identifier("always_true"), player -> true);
     public static final Identifier MC_AlwaysFalse = registerManaConditionType(ShapeShifterCurseFabric.identifier("always_false"), player -> false);
-    public static final Identifier MC_IsCursedMoon = registerManaConditionType(ShapeShifterCurseFabric.identifier("is_cursed_moon"), player -> CursedMoon.isCursedMoon(player.getWorld()) && CursedMoon.isNight());
+    public static final Identifier MC_IsCursedMoon = registerManaConditionType(ShapeShifterCurseFabric.identifier("is_cursed_moon"), player -> CursedMoon.isCursedMoon(player.getWorld()) && CursedMoon.isNight(player.getWorld()));
 
     public static final Identifier FAMILIAR_FOX_MANA = registerManaType(ShapeShifterCurseFabric.identifier("familiar_fox_mana"),
             new ManaUtils.ModifierList(
@@ -59,7 +59,7 @@ public class ManaRegistries {
                             ShapeShifterCurseFabric.identifier("cursed_moon"),
                             new Pair<Identifier, ManaUtils.Modifier>(
                                     MC_IsCursedMoon,
-                                    new ManaUtils.Modifier(0.5d, 1.0d, 0d)
+                                    new ManaUtils.Modifier(0.02d, 1.0d, 0d)
                             )
                     )
             ),

@@ -56,7 +56,9 @@
     "LingeringPotionItemMixin",
     "TippedArrowItemMixin",
     "BrewingRecipeRegistryMixin",
-    "HissPhantomMixin"
+    "HissPhantomMixin",
+    "EnchantmentUtilAnvilMixin",
+    "EnchantmentUtilEnchantCommandMixin"
   ],
   "client": [
     "AdjustItemHoldFeatureRendererMixin",
@@ -81,7 +83,9 @@
     "PlayerEntitySpeedFOVMixin",
     "PlayerMovementControlMixin",
     "PlayerRotationRendererMixin",
-    "accessor.ApoliClientAccessor"
+    "accessor.ApoliClientAccessor",
+    "integration.TacZ_Anim",
+    "integration.TacZ_AnimThird"
   ],
   "injectors": {
     "defaultRequire": 1
