@@ -51,12 +51,4 @@ public class EnchantmentHelperMixin {
         }
         cir.setReturnValue(!PowerHolderComponent.getPowers(entity, SoulSpeedPower.class).isEmpty());
     }
-
-    @ModifyExpressionValue(method = "getPossibleEntries", at = @At(value = "INVOKE", target = "Lnet/minecraft/enchantment/EnchantmentTarget;isAcceptableItem(Lnet/minecraft/item/Item;)Z"))
-    private static boolean isAcceptableItem(boolean original, @Local(ordinal = 0) ItemStack itemStack, @Local Enchantment enchantment) {
-        if (!original) {
-            return EnchantmentUtils.isItemCanEnchantment(enchantment, itemStack);
-        }
-        return original;
-    }
 }

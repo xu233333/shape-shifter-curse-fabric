@@ -3,18 +3,16 @@ package net.onixary.shapeShifterCurseFabric.mixin;
 import com.llamalad7.mixinextras.sugar.Local;
 import io.github.apace100.apoli.component.PowerHolderComponent;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
-import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.additional_power.AlwaysSweepingPower;
 import net.onixary.shapeShifterCurseFabric.additional_power.CriticalDamageModifierPower;
 import net.onixary.shapeShifterCurseFabric.additional_power.EnhancedFallingAttackPower;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 import java.util.List;
 
@@ -47,6 +45,7 @@ public abstract class PlayerEntityAttackMixin {
      * 精确注入到 attack 方法中，在原版暴击伤害计算之后修改伤害值。
      * local variable `f` (float) at index 2.
      */
+    /*
     @Redirect(
             method = "attack(Lnet/minecraft/entity/Entity;)V",
             at = @At(
@@ -114,5 +113,67 @@ public abstract class PlayerEntityAttackMixin {
         }
 
         return target.damage(source, enhancedCritDamage);
+    }
+     */
+
+    @Unique
+    private int attackArgIndex = 1;
+
+    @ModifyArgs(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;damage(Lnet/minecraft/entity/damage/DamageSource;F)Z"))
+    private void modifyCritDamage(Args args, @Local(ordinal = 0, argsOnly = true) Entity target, @Local(ordinal = 2) boolean isCrit) {
+        // 真奇妙 那个整合包amount的index为2
+        Object arg = args.get(attackArgIndex);
+        if (!(arg instanceof Float)) {
+            attackArgIndex = 2;
+            arg = args.get(2);
+        }
+        float amount = (float) arg;
+        if (!isCrit) {
+            args.set(attackArgIndex, amount);
+        }
+        PlayerEntity player = (PlayerEntity) (Object) this;
+        List<CriticalDamageModifierPower> critModifierPowers = PowerHolderComponent.getPowers(player, CriticalDamageModifierPower.class);
+        List<EnhancedFallingAttackPower> fallingAttackPowers = PowerHolderComponent.getPowers(player, EnhancedFallingAttackPower.class);
+        float baseDamage = amount / 1.5f;
+        float critMultiplier = 1.5f;
+        for (CriticalDamageModifierPower power : critModifierPowers) {
+            if (power.isActive()) {
+                critMultiplier *= power.getMultiplier();
+                power.executeAction();
+                break;
+            }
+        }
+        float enhancedCritDamage = baseDamage * critMultiplier;
+        boolean hasFallingAttackPower = fallingAttackPowers.stream().anyMatch(p -> p.isActive());
+
+        if (hasFallingAttackPower) {
+            float minFall = 1.0f;
+            float maxFall = 2.0f;
+            float minMultiplier = 1.0f;
+            float maxMultiplier = 2.0f;
+
+            float fallMultiplier;
+            if (player.fallDistance <= minFall) {
+                fallMultiplier = minMultiplier;
+            } else if (player.fallDistance >= maxFall) {
+                fallMultiplier = maxMultiplier;
+            } else {
+                // 在 [minFall, maxFall] 区间内进行线性插值
+                float progress = (player.fallDistance - minFall) / (maxFall - minFall);
+                fallMultiplier = minMultiplier + (maxMultiplier - minMultiplier) * progress;
+            }
+
+            // 执行下落攻击的 action
+            fallingAttackPowers.forEach(power -> {
+                if (power.isActive()) {
+                    power.executeTargetAction(target);
+                    power.executeSelfAction();
+                }
+            });
+
+            // 应用下落增伤到已经提升的跳劈伤害上
+            enhancedCritDamage = enhancedCritDamage * fallMultiplier;
+        }
+        args.set(attackArgIndex, enhancedCritDamage);
     }
 }

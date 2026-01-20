@@ -58,7 +58,8 @@
     "BrewingRecipeRegistryMixin",
     "HissPhantomMixin",
     "EnchantmentUtilAnvilMixin",
-    "EnchantmentUtilEnchantCommandMixin"
+    "EnchantmentUtilEnchantCommandMixin",
+    "integration.Apotheosis_EnchantmentHelper"
   ],
   "client": [
     "AdjustItemHoldFeatureRendererMixin",
