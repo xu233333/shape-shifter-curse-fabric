@@ -83,8 +83,8 @@ public class TransformManager {
 
         // 如果在服务端，同步状态到客户端
         if (player instanceof ServerPlayerEntity serverPlayer) {
-            String fromFormName = data.curFromForm != null ? data.curFromForm.name() : null;
-            String toFormName = data.curToForm != null ? data.curToForm.name() : null;
+            String fromFormName = data.curFromForm != null ? data.curFromForm.getIDString() : null;
+            String toFormName = data.curToForm != null ? data.curToForm.getIDString() : null;
 
             ModPacketsS2CServer.sendTransformState(serverPlayer, transforming, fromFormName, toFormName);
             ShapeShifterCurseFabric.LOGGER.info("Sent transform state to client: " + transforming +
@@ -373,7 +373,7 @@ public class TransformManager {
         // 只在客户端执行
         // transform时重置firstperson offset
         // Reset firstperson offset when transforming
-        if(IS_FIRST_PERSON_MOD_LOADED) {
+        if(IS_FIRST_PERSON_MOD_LOADED && ShapeShifterCurseFabric.clientConfig.enableChangeFPMConfig) {
             FirstPersonModelCore fpm = FirstPersonModelCore.instance;
             fpm.getConfig().xOffset = 0;
             fpm.getConfig().sitXOffset = 0;
@@ -532,7 +532,7 @@ public class TransformManager {
             return;
         }
 
-        if(IS_FIRST_PERSON_MOD_LOADED){
+        if(IS_FIRST_PERSON_MOD_LOADED && ShapeShifterCurseFabric.clientConfig.enableChangeFPMConfig) {
             FirstPersonModelCore fpm = FirstPersonModelCore.instance;
             fpm.getConfig().xOffset = 0;
             fpm.getConfig().sitXOffset = 0;
