@@ -19,6 +19,7 @@ import net.onixary.shapeShifterCurseFabric.player_animation.v3.IPlayerAnimContro
 import net.onixary.shapeShifterCurseFabric.player_form.PlayerFormBase;
 import net.onixary.shapeShifterCurseFabric.player_form.PlayerFormDynamic;
 import net.onixary.shapeShifterCurseFabric.player_form.RegPlayerForms;
+import net.onixary.shapeShifterCurseFabric.player_form.ability.RegPlayerFormComponent;
 import net.onixary.shapeShifterCurseFabric.player_form.skin.PlayerSkinComponent;
 import net.onixary.shapeShifterCurseFabric.player_form.skin.RegPlayerSkinComponent;
 import net.onixary.shapeShifterCurseFabric.player_form.transform.TransformManager;
@@ -100,8 +101,13 @@ public class ModPacketsC2S {
 
         ServerPlayNetworking.registerGlobalReceiver(
                 SET_PATRON_FORM,
-                net.onixary.shapeShifterCurseFabric.networking.ModPacketsC2S::receiveSetPatronForm);
+                net.onixary.shapeShifterCurseFabric.networking.ModPacketsC2S::receiveSetPatronForm
+        );
 
+        ServerPlayNetworking.registerGlobalReceiver(
+                SET_FORM,
+                net.onixary.shapeShifterCurseFabric.networking.ModPacketsC2S::receiveSetForm
+        );
 
         ServerPlayNetworking.registerGlobalReceiver(
                 UPDATE_POWER_ANIM_DATA_TO_SERVER,
@@ -115,11 +121,13 @@ public class ModPacketsC2S {
     }
 
     private static void onPressStartBookButton(MinecraftServer minecraftServer, ServerPlayerEntity playerEntity, ServerPlayNetworkHandler serverPlayNetworkHandler, PacketByteBuf packetByteBuf, PacketSender packetSender) {
-        UUID playerUuid = packetByteBuf.readUuid();
+        // 就凭这个网络Bug 我就可以做一个可以直接还原形态的作弊客户端 还可以给其他玩家还原 不知道为什么要往buf里写uuid
+        // UUID playerUuid = packetByteBuf.readUuid();
         minecraftServer.execute(() -> {
             // 通过 UUID 获取玩家实例
-            ServerPlayerEntity targetPlayer = minecraftServer.getPlayerManager().getPlayer(playerUuid);
-            if (targetPlayer != null) {
+            // ServerPlayerEntity targetPlayer = minecraftServer.getPlayerManager().getPlayer(playerUuid);
+            ServerPlayerEntity targetPlayer = playerEntity;
+            if (targetPlayer != null && RegPlayerForms.ORIGINAL_BEFORE_ENABLE.equals(RegPlayerFormComponent.PLAYER_FORM.get(targetPlayer).getCurrentForm())) {
                 TransformManager.handleDirectTransform(targetPlayer, RegPlayerForms.ORIGINAL_SHIFTER, false);
                 // 触发自定义成就
                 ShapeShifterCurseFabric.ON_ENABLE_MOD.trigger(targetPlayer);
@@ -201,6 +209,22 @@ public class ModPacketsC2S {
         });
     }
 
+    private static void receiveSetForm(MinecraftServer minecraftServer, ServerPlayerEntity playerEntity, ServerPlayNetworkHandler serverPlayNetworkHandler, PacketByteBuf packetByteBuf, PacketSender packetSender) {
+        Identifier formId = packetByteBuf.readIdentifier();
+        PlayerFormBase form = RegPlayerForms.getPlayerForm(formId);
+        // 网络包可以伪造 所以加个权限验证
+        if (minecraftServer.getCommandSource().hasPermissionLevel(2) || playerEntity.getAbilities().creativeMode) {
+            minecraftServer.execute(() -> {
+                if (playerEntity == null) {
+                    ShapeShifterCurseFabric.LOGGER.warn("[SetForm] Player is null");
+                    return;
+                }
+                TransformManager.handleDirectTransform(playerEntity, form, false);
+            });
+            return;
+        }
+    }
+
     private static void receiveSetPatronForm(MinecraftServer minecraftServer, ServerPlayerEntity playerEntity, ServerPlayNetworkHandler serverPlayNetworkHandler, PacketByteBuf packetByteBuf, PacketSender packetSender) {
         if (!PatronUtils.EnablePatronFeature) {
             ShapeShifterCurseFabric.LOGGER.error("Player {} tried to use patron form but patron feature is disabled", playerEntity.getDisplayName().getString());
@@ -208,6 +232,18 @@ public class ModPacketsC2S {
         }
         Identifier formId = packetByteBuf.readIdentifier();
         PlayerFormBase form = RegPlayerForms.getPlayerForm(formId);
+
+        if (minecraftServer.getCommandSource().hasPermissionLevel(2) || playerEntity.getAbilities().creativeMode) {
+            // 权限等级2时跳过反作弊 毕竟可以用setForm了
+            minecraftServer.execute(() -> {
+                if (playerEntity == null) {
+                    ShapeShifterCurseFabric.LOGGER.warn("[SetPatronForm] Player is null");
+                    return;
+                }
+                TransformManager.handleDirectTransform(playerEntity, form, false);
+            });
+            return;
+        }
         if (form instanceof PlayerFormDynamic pfd) {
             minecraftServer.execute(() -> {
                 if (playerEntity == null) {

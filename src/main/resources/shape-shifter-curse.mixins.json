@@ -61,7 +61,9 @@
     "HissPhantomMixin",
     "EnchantmentUtilAnvilMixin",
     "EnchantmentUtilEnchantCommandMixin",
-    "integration.Apotheosis_EnchantmentHelper"
+    "integration.Apotheosis_EnchantmentHelper",
+    "EnchantmentUtilEnchantCommandMixin",
+    "EntityMixin"
   ],
   "client": [
     "AdjustItemHoldFeatureRendererMixin",
