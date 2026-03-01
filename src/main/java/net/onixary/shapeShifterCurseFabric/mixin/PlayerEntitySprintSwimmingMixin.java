@@ -6,24 +6,34 @@ import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.math.Vec3d;
 import net.onixary.shapeShifterCurseFabric.additional_power.AlwaysSprintSwimmingPower;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 @Mixin(PlayerEntity.class)
 public class PlayerEntitySprintSwimmingMixin {
+    @Unique
+    private int argIndex = 0;
 
-    @ModifyArg(method = "addExhaustion", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/HungerManager;addExhaustion(F)V"), index = 0)
-    private float modifySwimmingHungerConsumption(float exhaustion) {
+    @ModifyArgs(method = "addExhaustion(F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/HungerManager;addExhaustion(F)V"))
+    private void modifySwimmingHungerConsumption(Args args) {
+        Object arg = args.get(argIndex);
+        if (!(arg instanceof Float)) {
+            argIndex = 1;
+            arg = args.get(1);
+        }
         PlayerEntity player = (PlayerEntity) (Object) this;
         if (player.isSwimming()) {
-            return PowerHolderComponent.getPowers(player, AlwaysSprintSwimmingPower.class).stream()
-                    .map(power -> exhaustion * power.getHungerMultiplier())
+            float finalArg = (float) arg;
+            args.set(argIndex, PowerHolderComponent.getPowers(player, AlwaysSprintSwimmingPower.class).stream()
+                    .map(power -> finalArg * power.getHungerMultiplier())
                     .findFirst()
-                    .orElse(exhaustion);
+                    .orElse(finalArg));
         }
-        return exhaustion;
     }
 
     @Inject(method = "updateSwimming", at = @At("TAIL"))
