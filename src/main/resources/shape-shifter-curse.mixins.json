@@ -63,7 +63,8 @@
     "EnchantmentUtilEnchantCommandMixin",
     "integration.Apotheosis_EnchantmentHelper",
     "EnchantmentUtilEnchantCommandMixin",
-    "EntityMixin"
+    "EntityMixin",
+    "DefaultAttributeRegistryMixin"
   ],
   "client": [
     "AdjustItemHoldFeatureRendererMixin",
