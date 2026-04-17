@@ -28,6 +28,10 @@ public class CommonConfig implements ConfigData {
     public float transformativeWolfSpawnChance = 0.5f;
 
     @ConfigEntry.Category("General")
+    @Comment("Transformative Spider Spawn Chance, 0 For Disable Spawn. Default: 0.5f [0.0f ~ 1.0f]")
+    public float transformativeSpiderSpawnChance = 0.5f;
+
+    @ConfigEntry.Category("General")
     @Comment("Use The New Start Book Interface. Default: true")
     public boolean enableNewStartBook = true;  // 新版启动书
 
@@ -38,6 +42,10 @@ public class CommonConfig implements ConfigData {
     @ConfigEntry.Category("General")
     @Comment("Allow players to sleep during Cursed Moon. Default: false")
     public boolean allowSleepInCursedMoon = false;
+
+    @ConfigEntry.Category("General")
+    @Comment("Enable Debug Command (PermissionLevel = 0). Default: false")
+    public boolean enableDebugCommand = false;
 
     @ConfigEntry.Category("Patron")
     @Comment("Enable Patron Form System. Default: true")

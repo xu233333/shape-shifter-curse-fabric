@@ -38,12 +38,14 @@ import net.onixary.shapeShifterCurseFabric.command.ShapeShifterCurseCommand;
 import net.onixary.shapeShifterCurseFabric.config.ClientConfig;
 import net.onixary.shapeShifterCurseFabric.config.CommonConfig;
 import net.onixary.shapeShifterCurseFabric.config.PlayerCustomConfig;
+import net.onixary.shapeShifterCurseFabric.entity.RegCustomEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.RegTransformativeEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.RegTransformativeEntitySpawnEgg;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.TransformativeEntitySpawning;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.axolotl.TransformativeAxolotlEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.bat.TransformativeBatEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.ocelot.TransformativeOcelotEntity;
+import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.spider.TransformativeSpiderEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.wolf.TransformativeWolfEntity;
 import net.onixary.shapeShifterCurseFabric.blocks.RegCustomBlock;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
@@ -81,8 +83,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static net.onixary.shapeShifterCurseFabric.player_form.ability.FormAbilityManager.saveForm;
-import static net.onixary.shapeShifterCurseFabric.player_form.instinct.InstinctManager.saveInstinctComp;
 
 
 public class ShapeShifterCurseFabric implements ModInitializer {
@@ -128,7 +128,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             Registries.ENTITY_TYPE,
             new Identifier(ShapeShifterCurseFabric.MOD_ID, "t_bat"),
             FabricEntityTypeBuilder.create(SpawnGroup.AMBIENT, TransformativeBatEntity::new)
-                    .dimensions(EntityDimensions.fixed(0.5f, 0.5f))
+                    .dimensions(EntityDimensions.fixed(0.5f, 0.9f))
                     .build()
     );
     // Axolotl
@@ -136,7 +136,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             Registries.ENTITY_TYPE,
             new Identifier(ShapeShifterCurseFabric.MOD_ID, "t_axolotl"),
             FabricEntityTypeBuilder.create(SpawnGroup.AXOLOTLS, TransformativeAxolotlEntity::new)
-                    .dimensions(EntityDimensions.fixed(0.5f, 0.5f))
+                    .dimensions(EntityDimensions.fixed(0.75f, 0.42f))
                     .build()
     );
     // Ocelot
@@ -144,7 +144,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             Registries.ENTITY_TYPE,
             new Identifier(ShapeShifterCurseFabric.MOD_ID, "t_ocelot"),
             FabricEntityTypeBuilder.create(SpawnGroup.MONSTER, TransformativeOcelotEntity::new)
-                    .dimensions(EntityDimensions.fixed(0.5f, 0.5f))
+                    .dimensions(EntityDimensions.fixed(0.6f, 0.7f))
                     .build()
     );
 
@@ -152,8 +152,16 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             Registries.ENTITY_TYPE,
             new Identifier(ShapeShifterCurseFabric.MOD_ID, "t_wolf"),
             FabricEntityTypeBuilder.create(SpawnGroup.CREATURE, TransformativeWolfEntity::new)
-                .dimensions(EntityDimensions.fixed(0.5f, 0.5f))
+                .dimensions(EntityDimensions.fixed(0.6f, 0.85f))
                 .build()
+    );
+
+    public static final EntityType<TransformativeSpiderEntity> T_SPIDER = Registry.register(
+            Registries.ENTITY_TYPE,
+            new Identifier(ShapeShifterCurseFabric.MOD_ID, "t_spider"),
+            FabricEntityTypeBuilder.create(SpawnGroup.MONSTER, TransformativeSpiderEntity::new)
+                    .dimensions(EntityDimensions.fixed(1.4f, 0.9f))
+                    .build()
     );
 
 
@@ -192,6 +200,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
         RegOtherStatusEffects.initialize();
         TransformativeEntitySpawning.addEntitySpawns();
         BatAttachEventHandler.register();
+        RegCustomEntity.init();
         // 注册动画（需要在服务端也执行以支持变换动画的同步）
         registerAnimations();
 
@@ -267,10 +276,11 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             PlayerEntity player = handler.player;
             // 清空玩家召唤物
             MinionRegister.DisSpawnAllMinion(player);
-            LOGGER.info("Player disconnect, save attachment");
+            // 由CCA+原版存储代替
+            // LOGGER.info("Player disconnect, save attachment");
             // saveCurrentAttachment(server.getOverworld(), player);
-            saveForm(player);
-            saveInstinctComp(player);
+            //saveForm(player);
+            // saveInstinctComp(player);
         });
 
         // Reg listeners

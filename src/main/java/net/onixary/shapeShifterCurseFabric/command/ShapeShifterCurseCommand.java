@@ -17,11 +17,16 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.cursed_moon.CursedMoon;
+import net.onixary.shapeShifterCurseFabric.entity.projectile.WebBullet;
 import net.onixary.shapeShifterCurseFabric.mana.ManaComponent;
 import net.onixary.shapeShifterCurseFabric.mana.ManaUtils;
+import net.onixary.shapeShifterCurseFabric.mana.RegManaComponent;
+import net.onixary.shapeShifterCurseFabric.minion.RegPlayerMinionComponent;
 import net.onixary.shapeShifterCurseFabric.player_form.PlayerFormBase;
 import net.onixary.shapeShifterCurseFabric.player_form.PlayerFormDynamic;
 import net.onixary.shapeShifterCurseFabric.player_form.RegPlayerForms;
+import net.onixary.shapeShifterCurseFabric.player_form.ability.RegPlayerFormComponent;
+import net.onixary.shapeShifterCurseFabric.player_form.instinct.RegPlayerInstinctComponent;
 import net.onixary.shapeShifterCurseFabric.player_form.skin.RegPlayerSkinComponent;
 import net.onixary.shapeShifterCurseFabric.util.FormTextureUtils;
 import net.onixary.shapeShifterCurseFabric.util.PatronUtils;
@@ -112,8 +117,33 @@ public class ShapeShifterCurseCommand {
                                         )
                                 )
                         )
-                        .then(literal("dev_command").requires(cs -> cs.hasPermissionLevel(2))
-                                .executes(ShapeShifterCurseCommand::devCommand)
+                        .then(literal("debug").requires(cs -> cs.hasPermissionLevel(0))
+                                .then(literal("dev_command").executes(ShapeShifterCurseCommand::devCommand))
+                                .then(literal("clear_player_form_data")
+                                        .then(argument("target", EntityArgumentType.player())
+                                                .executes(ShapeShifterCurseCommand::clearPlayerFormData)
+                                        )
+                                )
+                                .then(literal("clear_player_instinct_data")
+                                        .then(argument("target", EntityArgumentType.player())
+                                                .executes(ShapeShifterCurseCommand::clearPlayerInstinctData)
+                                        )
+                                )
+                                .then(literal("clear_player_skin_data")
+                                        .then(argument("target", EntityArgumentType.player())
+                                                .executes(ShapeShifterCurseCommand::clearPlayerSkinData)
+                                        )
+                                )
+                                .then(literal("clear_player_minion_data")
+                                        .then(argument("target", EntityArgumentType.player())
+                                                .executes(ShapeShifterCurseCommand::clearPlayerMinionData)
+                                        )
+                                )
+                                .then(literal("clear_player_mana_data")
+                                        .then(argument("target", EntityArgumentType.player())
+                                                .executes(ShapeShifterCurseCommand::clearPlayerManaData)
+                                        )
+                                )
                         )
                         .then(literal("patron_info").requires(cs -> cs.hasPermissionLevel(0))
                                 .executes(ShapeShifterCurseCommand::logPatronInfo)
@@ -378,35 +408,93 @@ public class ShapeShifterCurseCommand {
         return 1;
     }
 
+    private static boolean CheckDebugEnvironment(CommandContext<ServerCommandSource> commandContext) {
+        // 只有权限等级>=2 或者在配置中开启才可以使用调试命令
+        if (commandContext.getSource().hasPermissionLevel(2)) {
+            return true;
+        }
+        return ShapeShifterCurseFabric.commonConfig.enableDebugCommand;
+    }
+
     private static int devCommand(CommandContext<ServerCommandSource> commandContext) {
+        if (!CheckDebugEnvironment(commandContext)) {
+            commandContext.getSource().sendError(Text.literal("Has No Permission!"));
+            return 0;
+        }
         ServerPlayerEntity player = commandContext.getSource().getPlayer();
         ServerWorld world = commandContext.getSource().getWorld();
         if (player == null) {
-            return 1;
+            return 0;
         }
         try {
-//            ItemStack stack = new ItemStack(Items.POTION);
-//            PotionUtil.setPotion(stack, RegCustomPotions.CUSTOM_STATUE_FORM_POTION);
-//            CTPUtils.setCTPFormIDToNBT(stack.getNbt(), RegPlayerForms.SNOW_FOX_3.FormID);
-//            player.giveItemStack(stack);
-            ManaComponent manaComponent = ManaUtils.getManaComponent(player);
-            StringBuilder stringBuilder = new StringBuilder("\nMana Data\n");
-            Identifier manaType = manaComponent.getManaTypeID();
-            if (manaType != null) {
-                stringBuilder.append("Mana Type: ").append(manaType.toString()).append("\n");
-            } else {
-                stringBuilder.append("Mana Type: None\n");
-            }
-            stringBuilder.append("Mana: ").append(manaComponent.getMana()).append("\n");
-            stringBuilder.append("Max Mana Client: ").append(manaComponent.MaxManaClient).append("\n");
-            stringBuilder.append("Mana Regen: ").append(manaComponent.ManaRegenClient).append("\n");
-            stringBuilder.append("Max Mana Server: ").append(manaComponent.getMaxMana()).append("\n");
-            stringBuilder.append("Mana Regen Server: ").append(manaComponent.getManaRegen()).append("\n");
-            player.sendMessage(Text.literal(stringBuilder.toString()), false);
+            WebBullet webBullet = new WebBullet(player, 1);
+            webBullet.setVelocity(player, player.getPitch(), player.getYaw(), 0.0f, 2.25f, 0.5f);
+            player.getWorld().spawnEntity(webBullet);
         } catch (Exception e) {
             ShapeShifterCurseFabric.LOGGER.error("Error Dev Command", e);
             return 0;
         }
-        return 0;
+        return 1;
+    }
+
+
+    private static int clearPlayerFormData(CommandContext<ServerCommandSource> commandContext) throws CommandSyntaxException {
+        if (!CheckDebugEnvironment(commandContext)) {
+            commandContext.getSource().sendError(Text.literal("Has No Permission!"));
+            return 0;
+        }
+        ServerPlayerEntity target = EntityArgumentType.getPlayer(commandContext, "target");
+        RegPlayerFormComponent.PLAYER_FORM.get(target).clear();
+        RegPlayerFormComponent.PLAYER_FORM.sync(target);
+        commandContext.getSource().sendFeedback(() -> {return Text.literal("Form Data Cleared!");}, false);
+        return 1;
+    }
+
+    private static int clearPlayerInstinctData(CommandContext<ServerCommandSource> commandContext) throws CommandSyntaxException {
+        if (!CheckDebugEnvironment(commandContext)) {
+            commandContext.getSource().sendError(Text.literal("Has No Permission!"));
+            return 0;
+        }
+        ServerPlayerEntity target = EntityArgumentType.getPlayer(commandContext, "target");
+        RegPlayerInstinctComponent.PLAYER_INSTINCT_COMP.get(target).clear();
+        RegPlayerInstinctComponent.PLAYER_INSTINCT_COMP.sync(target);
+        commandContext.getSource().sendFeedback(() -> {return Text.literal("Instinct Data Cleared!");}, false);
+        return 1;
+    }
+
+    private static int clearPlayerSkinData(CommandContext<ServerCommandSource> commandContext) throws CommandSyntaxException {
+        if (!CheckDebugEnvironment(commandContext)) {
+            commandContext.getSource().sendError(Text.literal("Has No Permission!"));
+            return 0;
+        }
+        ServerPlayerEntity target = EntityArgumentType.getPlayer(commandContext, "target");
+        RegPlayerSkinComponent.SKIN_SETTINGS.get(target).clear();
+        RegPlayerSkinComponent.SKIN_SETTINGS.sync(target);
+        commandContext.getSource().sendFeedback(() -> {return Text.literal("Skin Data Cleared!");}, false);
+        return 1;
+    }
+
+    private static int clearPlayerMinionData(CommandContext<ServerCommandSource> commandContext) throws CommandSyntaxException {
+        if (!CheckDebugEnvironment(commandContext)) {
+            commandContext.getSource().sendError(Text.literal("Has No Permission!"));
+            return 0;
+        }
+        ServerPlayerEntity target = EntityArgumentType.getPlayer(commandContext, "target");
+        RegPlayerMinionComponent.PLAYER_MINION_DATA.get(target).clear();
+        RegPlayerMinionComponent.PLAYER_MINION_DATA.sync(target);
+        commandContext.getSource().sendFeedback(() -> {return Text.literal("Minion Data Cleared!");}, false);
+        return 1;
+    }
+
+    private static int clearPlayerManaData(CommandContext<ServerCommandSource> commandContext) throws CommandSyntaxException {
+        if (!CheckDebugEnvironment(commandContext)) {
+            commandContext.getSource().sendError(Text.literal("Has No Permission!"));
+            return 0;
+        }
+        ServerPlayerEntity target = EntityArgumentType.getPlayer(commandContext, "target");
+        RegManaComponent.MANA.get(target).clear();
+        RegManaComponent.MANA.sync(target);
+        commandContext.getSource().sendFeedback(() -> {return Text.literal("Mana Data Cleared!");}, false);
+        return 1;
     }
 }

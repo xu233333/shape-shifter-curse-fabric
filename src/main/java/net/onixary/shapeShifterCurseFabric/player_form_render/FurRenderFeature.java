@@ -3,7 +3,11 @@ package net.onixary.shapeShifterCurseFabric.player_form_render;
 import dev.kosmx.playerAnim.api.TransformType;
 import dev.kosmx.playerAnim.api.layered.IAnimation;
 import dev.kosmx.playerAnim.core.util.Vec3f;
+import mod.azure.azurelib.cache.object.GeoBone;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.model.Model;
+import net.minecraft.client.model.ModelPart;
+import net.minecraft.entity.player.PlayerEntity;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.integration.origins.origin.Origin;
 import net.minecraft.client.MinecraftClient;
@@ -19,6 +23,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.onixary.shapeShifterCurseFabric.player_animation.v3.AnimSystem;
 import net.onixary.shapeShifterCurseFabric.render.render_layer.FurColorGradientRenderLayer;
 import net.onixary.shapeShifterCurseFabric.render.render_layer.FurGradientRenderLayer;
 import org.joml.Quaternionf;
@@ -171,6 +176,14 @@ public class FurRenderFeature <T extends LivingEntity, M extends BipedEntityMode
         }
     }
 
+    public void ProcessExtraBone(OriginFurModel m, PlayerEntity player, String OriginFursBoneID, String AnimBoneID) {
+        GeoBone bone =  m.resetBone(OriginFursBoneID);
+        Vec3f AnimPosition = AnimSystem.getPlayerBone3DTransform(player, AnimBoneID, TransformType.POSITION, new Vec3f(0, 0, 0));
+        m.setPositionForBone(OriginFursBoneID, new Vec3f(AnimPosition.getX(), -AnimPosition.getY(), -AnimPosition.getZ()));
+        m.setRotationForBone(OriginFursBoneID, AnimSystem.getPlayerBone3DTransform(player, AnimBoneID, TransformType.ROTATION, new Vec3f(0, 0, 0)));
+        m.invertRotForPart(OriginFursBoneID, false, true, true);
+    }
+
     // 将修改模型提取出来 不知道为什么渲染模型和渲染模型发光会冲突(模型旋转会重置)
     private void ProcessModel(OriginFurModel m, PlayerEntityRenderer eR, T entity, float limbAngle, float limbDistance, float headYaw, float headPitch) {
         m.resetBone("bipedHead");
@@ -180,17 +193,43 @@ public class FurRenderFeature <T extends LivingEntity, M extends BipedEntityMode
         m.resetBone("bipedLeftLeg");
         m.resetBone("bipedRightLeg");
 
+        if (entity instanceof PlayerEntity player) {
+            /*
+            "bones": {
+				"turf": {
+					"position": {
+						"0.0": {
+							"vector": [-8, 8, -16]
+						},
+						"0.3333": {
+							"vector": [8, -8, -16]
+						}
+					}
+				},
+			}
+             */
+
+            this.ProcessExtraBone(m, player, "bipedRightHindLeg", "bipedRightHindLeg");
+            this.ProcessExtraBone(m, player, "bipedLeftHindLeg", "bipedLeftHindLeg");
+            this.ProcessExtraBone(m, player, "bipedRightExtraArm", "bipedRightExtraArm");
+            this.ProcessExtraBone(m, player, "bipedLeftExtraArm", "bipedLeftExtraArm");
+            this.ProcessExtraBone(m, player, "tailBase", "tailBase");
+            this.ProcessExtraBone(m, player, "wingLeftBase", "wingLeftBase");
+            this.ProcessExtraBone(m, player, "wingRightBase", "wingRightBase");
+        }
+
         m.setRotationForBone("bipedHead", ((IMojModelPart) (Object) eR.getModel().head).originfurs$getRotation());
         m.translatePositionForBone("bipedHead", ((IMojModelPart) (Object) eR.getModel().head).originfurs$getPosition());
         m.translatePositionForBone("bipedBody", ((IMojModelPart) (Object) eR.getModel().body).originfurs$getPosition());
         m.translatePositionForBone("bipedLeftArm", ((IMojModelPart) (Object) eR.getModel().leftArm).originfurs$getPosition());
         m.translatePositionForBone("bipedRightArm", ((IMojModelPart) (Object) eR.getModel().rightArm).originfurs$getPosition());
-        m.translatePositionForBone("bipedLeftLeg", ((IMojModelPart) (Object) eR.getModel().rightLeg).originfurs$getPosition());
-        m.translatePositionForBone("bipedRightLeg", ((IMojModelPart) (Object) eR.getModel().leftLeg).originfurs$getPosition());
+
+        m.translatePositionForBone("bipedRightLeg", ((IMojModelPart) (Object) eR.getModel().rightLeg).originfurs$getPosition());
+        m.translatePositionForBone("bipedLeftLeg", ((IMojModelPart) (Object) eR.getModel().leftLeg).originfurs$getPosition());
         m.translatePositionForBone("bipedLeftArm", new Vec3d(5, 2, 0));
         m.translatePositionForBone("bipedRightArm", new Vec3d(-5, 2, 0));
-        m.translatePositionForBone("bipedLeftLeg", new Vec3d(-2, 12, 0));
-        m.translatePositionForBone("bipedRightLeg", new Vec3d(2, 12, 0));
+        m.translatePositionForBone("bipedLeftLeg", new Vec3d(2, 12, 0));
+        m.translatePositionForBone("bipedRightLeg", new Vec3d(-2, 12, 0));
         m.setRotationForBone("bipedBody", ((IMojModelPart) (Object) eR.getModel().body).originfurs$getRotation());
 
         m.setRotationForTailBones(limbAngle, limbDistance, entity.age, currentTailDragAmount, tailDragAmountVertical);
@@ -200,8 +239,8 @@ public class FurRenderFeature <T extends LivingEntity, M extends BipedEntityMode
         m.invertRotForPart("bipedBody", false, true, false);
         m.setRotationForBone("bipedLeftArm", ((IMojModelPart) (Object) eR.getModel().leftArm).originfurs$getRotation());
         m.setRotationForBone("bipedRightArm", ((IMojModelPart) (Object) eR.getModel().rightArm).originfurs$getRotation());
-        m.setRotationForBone("bipedLeftLeg", ((IMojModelPart) (Object) eR.getModel().rightLeg).originfurs$getRotation());
-        m.setRotationForBone("bipedRightLeg", ((IMojModelPart) (Object) eR.getModel().leftLeg).originfurs$getRotation());
+        m.setRotationForBone("bipedRightLeg", ((IMojModelPart) (Object) eR.getModel().rightLeg).originfurs$getRotation());
+        m.setRotationForBone("bipedLeftLeg", ((IMojModelPart) (Object) eR.getModel().leftLeg).originfurs$getRotation());
         m.invertRotForPart("bipedHead", false, true, true);
         m.invertRotForPart("bipedRightArm", false, true, true);
         m.invertRotForPart("bipedLeftArm", false, true, true);

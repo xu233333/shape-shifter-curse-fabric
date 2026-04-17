@@ -2,20 +2,22 @@ package net.onixary.shapeShifterCurseFabric.items;
 
 import dev.emi.trinkets.api.TrinketItem;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.fluid.Fluids;
 import net.minecraft.item.*;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionUtil;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.items.armors.MorphScaleArmor;
 import net.onixary.shapeShifterCurseFabric.items.armors.NetheriteMorphScaleArmor;
-import net.onixary.shapeShifterCurseFabric.items.tools.BottledSnowfall;
-import net.onixary.shapeShifterCurseFabric.items.tools.BottledSnowfallToolMaterial;
-import net.onixary.shapeShifterCurseFabric.items.tools.DiamondMiningClaw;
-import net.onixary.shapeShifterCurseFabric.items.tools.DiamondMiningClawToolMaterial;
+import net.onixary.shapeShifterCurseFabric.items.tools.*;
 import net.onixary.shapeShifterCurseFabric.items.trinkets.*;
 
 import java.util.ArrayList;
@@ -55,6 +57,9 @@ public class RegCustomItem {
     public static final ToolItem BOTTLED_SNOWFALL = register("bottled_snowfall", new BottledSnowfall(BottledSnowfallToolMaterial.INSTANCE, 1, 1, new Item.Settings()));
     public static final ToolItem DIAMOND_MINING_CLAW = register("diamond_mining_claw", new DiamondMiningClaw(DiamondMiningClawToolMaterial.INSTANCE, 1, -2.4f, new Item.Settings()));
     public static final Item FIRE_CHARM_PAPER = register("fire_charm_paper", new Item(new Item.Settings()));
+    public static final Item AUXILIARY_SWORD = register("auxiliary_sword", new AuxiliarySword(AuxiliarySwordToolMaterial.INSTANCE, 1, -2.4f, new Item.Settings()));
+    public static final ToolItem AUXILIARY_PICKAXE = register("auxiliary_pickaxe", new AuxiliaryPickaxe(AuxiliaryPickaxeToolMaterial.INSTANCE, 1, -2.8f, new Item.Settings()));
+    public static final ToolItem AUXILIARY_AXE = register("auxiliary_axe", new AuxiliaryAxe(AuxiliaryAxeToolMaterial.INSTANCE, 1, -3.1f, new Item.Settings()));
     // 模组自定义Trinkets
     public static final TrinketItem AMULET_BRACELET = register("amulet_bracelet", new AmuletBraceletTrinket(new AmuletBraceletTrinket.Settings()));
     public static final Item ATTACH_HOOK = register("attach_hook", new AttachHookTrinket(new AttachHookTrinket.Settings()));
@@ -69,11 +74,18 @@ public class RegCustomItem {
     public static final Item FOUNTAIN_BELT = register("fountain_belt", new FountainBeltTrinket(new FountainBeltTrinket.Settings()));
     public static final Item RESONANT_CORE = register("resonant_core", new ResonantCoreTrinket(new ResonantCoreTrinket.Settings()));
 
+    public static final Item TRANSFORMATIVE_AXOLOTL_BUCKET = register("transformative_axolotl_bucket", new EntityBucketItem(ShapeShifterCurseFabric.T_AXOLOTL, Fluids.WATER, SoundEvents.ITEM_BUCKET_EMPTY_AXOLOTL, (new Item.Settings()).maxCount(1)));
+    // 减少非蜘蛛玩家食用的中毒量，做到实在没东西吃的时候也能硬着头皮吃的感觉
+    public static final Item SPIDER_FLUID_COCOON = register("spider_fluid_cocoon", new SpiderFluidCocoon(new SpiderFluidCocoon.Settings()));
+
     public static final Item PATRON_FORM_ITEM = register("patron_form_item", new PatronFormItem(new Item.Settings()));
+    public static final Item SELECT_FORM_ITEM = register("select_form_item", new SelectFormItem(new Item.Settings()));
 
     public static final Item CUSTOM_TRINKET = register("custom_trinket", new CustomTrinket(new CustomTrinket.Settings()));
     // 用于成就图标的占位物品
     public static final Item ICON_CURSED_MOON = register("icon_cursed_moon", new Item(new Item.Settings()));
+    // 蛛丝弹占位物品
+    public static final Item WEB_PROJECTILE = register("web_projectile", new Item(new Item.Settings()));
 
     public static ItemStack buildPotion(Item PotionItem, Potion potion) {
         ItemStack potionStack = new ItemStack(PotionItem);
@@ -137,6 +149,12 @@ public class RegCustomItem {
                 entries.add(RESONANT_CORE);
                 entries.add(CUSTOM_TRINKET);
                 entries.add(FIRE_CHARM_PAPER);
+                entries.add(TRANSFORMATIVE_AXOLOTL_BUCKET);
+                entries.add(SPIDER_FLUID_COCOON);
+                entries.add(AUXILIARY_SWORD);
+                entries.add(AUXILIARY_PICKAXE);
+                entries.add(AUXILIARY_AXE);
+                entries.add(SELECT_FORM_ITEM);
                 // 方块物品注册
                 entries.add(MOONDUST_CRYSTAL_GRIT);
                 entries.addAll(buildAllPotions(
@@ -147,6 +165,7 @@ public class RegCustomItem {
                         RegCustomPotions.FAMILIAR_FOX_FORM_POTION,
                         RegCustomPotions.SNOW_FOX_FORM_POTION,
                         RegCustomPotions.ANUBIS_WOLF_FORM_POTION,
+                        RegCustomPotions.SPIDER_FORM_POTION,
                         RegCustomPotions.ALLEY_FORM_POTION,
                         RegCustomPotions.FERAL_CAT_FORM_POTION,
                         RegCustomPotions.CUSTOM_STATUE_FORM_POTION,

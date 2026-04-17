@@ -21,13 +21,16 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.additional_power.CustomEdiblePower;
+import net.onixary.shapeShifterCurseFabric.additional_power.ItemStorePower;
 import net.onixary.shapeShifterCurseFabric.additional_power.LevitatePower;
 import net.onixary.shapeShifterCurseFabric.custom_ui.BookOfShapeShifterScreenV2_P1;
 import net.onixary.shapeShifterCurseFabric.custom_ui.StartBookScreenV2;
 import net.onixary.shapeShifterCurseFabric.data.StaticParams;
+import net.onixary.shapeShifterCurseFabric.entity.RegCustomEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.axolotl.TAxolotlEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.bat.BatEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.ocelot.TOcelotEntityRenderer;
+import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.spider.TSpiderEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.integration.origins.Origins;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
 import net.onixary.shapeShifterCurseFabric.items.armors.MorphscaleArmorRenderer;
@@ -137,6 +140,8 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 		EntityRendererRegistry.register(T_AXOLOTL, TAxolotlEntityRenderer::new);
 		EntityRendererRegistry.register(T_OCELOT, TOcelotEntityRenderer::new);
 		EntityRendererRegistry.register(T_WOLF, AnubisWolfMinionEntityRenderer::new);
+		EntityRendererRegistry.register(T_SPIDER, TSpiderEntityRenderer::new);
+
 		MinionRegisterClient.registerClient();
 	}
 
@@ -167,6 +172,7 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 		if (!MinecraftClient.getInstance().isPaused()) {
 			ManaUtils.manaTick(minecraftClient.player);
 		}
+		PowerHolderComponent.getPowers(clientPlayer, ItemStorePower.class).forEach(ItemStorePower::clientTick);
 	}
 
 	public static void emitTransformParticle(int duration) {
@@ -287,6 +293,7 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
         registerAzureArmorGeo();
 
 		ManaRegistriesClient.register();
+		RegCustomEntityRenderer.init();
 
 		ClientTickEvents.END_CLIENT_TICK.register(ShapeShifterCurseFabricClient::onClientTick);
 		// 客户端能力处理
