@@ -50,6 +50,9 @@ public class ItemStorePowerRender {
             timer = 0;
             NowCol = 0;
             NowRow = 0;
+            for (int i = 0; i < MaxSlot; i++) {
+                tempPower.set(i, null);
+            }
             for(Power power : PowerHolderComponent.KEY.get(mc.player).getPowers()) {
                 if(itemStorePowerRenderInterface.class.isAssignableFrom(power.getClass()) && power.isActive()) {
                     itemStorePowerRenderInterface trueR = (itemStorePowerRenderInterface) power;

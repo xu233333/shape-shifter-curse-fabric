@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = AnimationManager.class, remap = false)
 public class TacZ_Anim {
     @Inject(method = "onFire", at = @At("HEAD"), cancellable = true)
-    private static void onFire(GunShootEvent event, CallbackInfo ci) {
+    private void onFire(GunShootEvent event, CallbackInfo ci) {
         if (event.getShooter() instanceof AbstractClientPlayerEntity player) {
             PlayerFormBase form = RegPlayerFormComponent.PLAYER_FORM.get(player).getCurrentForm();
             if (form.getBodyType() == PlayerFormBodyType.FERAL) {
@@ -30,7 +30,7 @@ public class TacZ_Anim {
         }
     }
     @Inject(method = "onReload", at = @At("HEAD"), cancellable = true)
-    private static void onFire(GunReloadEvent event, CallbackInfo ci) {
+    private void onReload(GunReloadEvent event, CallbackInfo ci) {
         if (event.getEntity() instanceof AbstractClientPlayerEntity player) {
             PlayerFormBase form = RegPlayerFormComponent.PLAYER_FORM.get(player).getCurrentForm();
             if (form.getBodyType() == PlayerFormBodyType.FERAL) {
@@ -39,7 +39,7 @@ public class TacZ_Anim {
         }
     }
     @Inject(method = "onMelee", at = @At("HEAD"), cancellable = true)
-    private static void onMelee(GunMeleeEvent event, CallbackInfo ci) {
+    private void onMelee(GunMeleeEvent event, CallbackInfo ci) {
         if (event.getShooter() instanceof AbstractClientPlayerEntity player) {
             PlayerFormBase form = RegPlayerFormComponent.PLAYER_FORM.get(player).getCurrentForm();
             if (form.getBodyType() == PlayerFormBodyType.FERAL) {
@@ -48,7 +48,7 @@ public class TacZ_Anim {
         }
     }
     @Inject(method = "onDraw", at = @At("HEAD"), cancellable = true)
-    private static void onDraw(GunDrawEvent event, CallbackInfo ci) {
+    private void onDraw(GunDrawEvent event, CallbackInfo ci) {
         if (event.getEntity() instanceof AbstractClientPlayerEntity player) {
             PlayerFormBase form = RegPlayerFormComponent.PLAYER_FORM.get(player).getCurrentForm();
             if (form.getBodyType() == PlayerFormBodyType.FERAL) {
