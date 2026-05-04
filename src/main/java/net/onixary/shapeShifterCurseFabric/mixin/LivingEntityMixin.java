@@ -134,24 +134,24 @@ public abstract class LivingEntityMixin {
     @Unique
     private void handleFluidCocoonLoot(MobEntity mob, ServerPlayerEntity player) {
         if (AdditionalPowers.CAN_LOOT_SPIDER_FLUID_COCOON.isActive(player) && !mob.getType().getRegistryEntry().isIn(ModTags.SPIDER_FLUID_COCOON_BLACKLIST)) {
-            // 50% 掉落 0~(血上限/4f)个
+            // 40% 掉落 1~(血上限/4f)个
             float mobMaxHp = mob.getMaxHealth();
             int lootCount = (MathHelper.ceil(mobMaxHp / 4.0f));
             Random random = player.getRandom();
             if (random.nextInt(100) < 40) {
                 int finalCount = random.nextInt(lootCount);
-                if (finalCount > 0) {
-                    ItemStack stack = new ItemStack(RegCustomItem.SPIDER_FLUID_COCOON, finalCount);
-                    mob.getWorld().spawnEntity(
-                            new ItemEntity(
-                                    mob.getWorld(),
-                                    mob.getX(),
-                                    mob.getY(),
-                                    mob.getZ(),
-                                    stack
-                            )
-                    );
-                }
+                // 钳制最少掉落 1 个
+                finalCount = Math.max(finalCount, 1);
+                ItemStack stack = new ItemStack(RegCustomItem.SPIDER_FLUID_COCOON, finalCount);
+                mob.getWorld().spawnEntity(
+                        new ItemEntity(
+                                mob.getWorld(),
+                                mob.getX(),
+                                mob.getY(),
+                                mob.getZ(),
+                                stack
+                        )
+                );
             }
         }
     }
