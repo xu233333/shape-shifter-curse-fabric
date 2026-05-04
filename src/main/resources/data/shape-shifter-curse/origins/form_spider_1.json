@@ -1,5 +1,15 @@
 {
-    "powers": [],
+    "powers": [
+        "shape-shifter-curse:form_spider_1_scale",
+        "shape-shifter-curse:no_render_arm",
+        "shape-shifter-curse:disable_player_rotation",
+        "shape-shifter-curse:no_render_tp_item",
+        "shape-shifter-curse:form_spider_1_speed_down",
+        "shape-shifter-curse:form_spider_1_jump_height",
+        "shape-shifter-curse:form_spider_1_darkness",
+        "shape-shifter-curse:form_spider_1_particle",
+        "shape-shifter-curse:prevent_sprinting"
+    ],
     "icon": {
         "item": "minecraft:player_head"
     },
