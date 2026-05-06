@@ -313,7 +313,7 @@ public abstract class LivingEntityMixin {
         return Math.max(0f, finalV);
     }
 
-    @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true, order = 9999)
     private float modifyDamageTaken(float originalValue, DamageSource source, float amount) {
         LivingEntity realThis = (LivingEntity) (Object) this;
         float finalDamage = originalValue;
