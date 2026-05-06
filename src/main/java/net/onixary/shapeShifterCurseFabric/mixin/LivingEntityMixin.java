@@ -313,20 +313,44 @@ public abstract class LivingEntityMixin {
         return Math.max(0f, finalV);
     }
 
-    @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true, order = 9999)
-    private float modifyDamageTaken(float originalValue, DamageSource source, float amount) {
+    // 旧方案 使用模拟原版盾牌方案 可以避免任何情况下的盾牌损坏问题
+    // @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true, order = 9999)
+    // private float modifyDamageTaken(float originalValue, DamageSource source, float amount) {
+    //     LivingEntity realThis = (LivingEntity) (Object) this;
+    //     float finalDamage = originalValue;
+    //     for (VirtualShieldPower power : PowerHolderComponent.getPowers(realThis, VirtualShieldPower.class)) {
+    //         if (power.blockDamage(source)) {
+    //             finalDamage = 0.0f;
+    //             Entity attacker = source.getAttacker();
+    //             if (!source.isIn(DamageTypeTags.IS_PROJECTILE) && (attacker instanceof LivingEntity ale)) {
+    //                 this.takeShieldHit(ale);
+    //             }
+    //             realThis.getWorld().sendEntityStatus(realThis, (byte)29);
+    //         }
+    //     }
+    //     return finalDamage;
+    // }
+
+    // 新方案 修改原版盾牌检查函数 对于伤害防护兼容性强 但是使用了Redirect(需要防止玩家当前使用的盾牌不会受损) 可能兼容性不太高
+    @Unique
+    private boolean bypassNextShieldDamage = false;
+
+    @Inject(method = "blockedByShield", at = @At("HEAD"), cancellable = true)
+    private void blockedByShield(DamageSource source, CallbackInfoReturnable<Boolean> cir) {
         LivingEntity realThis = (LivingEntity) (Object) this;
-        float finalDamage = originalValue;
         for (VirtualShieldPower power : PowerHolderComponent.getPowers(realThis, VirtualShieldPower.class)) {
             if (power.blockDamage(source)) {
-                finalDamage = 0.0f;
-                Entity attacker = source.getAttacker();
-                if (!source.isIn(DamageTypeTags.IS_PROJECTILE) && (attacker instanceof LivingEntity ale)) {
-                    this.takeShieldHit(ale);
-                }
-                realThis.getWorld().sendEntityStatus(realThis, (byte)29);
+                this.bypassNextShieldDamage = true;
+                cir.setReturnValue(true);
             }
         }
-        return finalDamage;
+    }
+
+    @Redirect(method = "damage", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;damageShield(F)V"))
+    private void damageShield(LivingEntity instance, float amount) {
+        if (!this.bypassNextShieldDamage) {
+            instance.damageShield(amount);
+        }
+        this.bypassNextShieldDamage = false;
     }
 }
