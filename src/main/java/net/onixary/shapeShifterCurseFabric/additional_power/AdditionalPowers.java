@@ -80,6 +80,8 @@ public class AdditionalPowers {
         register(ModifyFallDamagePower.createFactory());
         register(VirtualShieldPower.createFactory());
         register(RenderTrinketsSlotPower.createFactory());
+        register(DisablePlayerRotationPower.createFactory());
+        register(HideTPHeldItemPower.createFactory());
     }
 
     public static PowerFactory<?> register(PowerFactory<?> powerFactory) {

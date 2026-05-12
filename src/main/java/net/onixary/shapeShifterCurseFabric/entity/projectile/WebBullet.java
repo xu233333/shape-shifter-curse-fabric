@@ -26,6 +26,7 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
+import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.additional_power.TrinketsConditionAction;
 import net.onixary.shapeShifterCurseFabric.additional_power.WebBridgeAction;
 import net.onixary.shapeShifterCurseFabric.blocks.RegCustomBlock;
@@ -42,6 +43,8 @@ import static net.onixary.shapeShifterCurseFabric.entity.RegCustomEntity.WEB_BUL
 public class WebBullet extends ThrownItemEntity {
     public @Nullable LivingEntity owner = null;
     public int Tier = 1;
+    public boolean EnableEntangledEffect = true;
+    public boolean EnableTopBlockBuild = true;
     private boolean launched = false;
 
     public static final WebBridgeAction.WebLadderConfig ladderConfigTier1 = new WebBridgeAction.WebLadderConfig(10, 14, 8, false, 0.0f);
@@ -55,17 +58,31 @@ public class WebBullet extends ThrownItemEntity {
     public WebBullet(EntityType<? extends ThrownItemEntity> entityType, World world) {
         super(entityType, world);
         this.Tier = 1;
+        this.EnableEntangledEffect = true;
+        this.EnableTopBlockBuild = true;
     }
 
     public WebBullet(double d, double e, double f, World world, int Tier) {
         super(WEB_BULLET, d, e, f, world);
         this.Tier = Tier;
+        this.EnableEntangledEffect = true;
+        this.EnableTopBlockBuild = true;
     }
 
     public WebBullet(LivingEntity livingEntity, int Tier) {
         super(WEB_BULLET, livingEntity, livingEntity.getWorld());
         this.Tier = Tier;
         this.owner = livingEntity;
+        this.EnableEntangledEffect = true;
+        this.EnableTopBlockBuild = true;
+    }
+
+    public WebBullet(LivingEntity livingEntity, int Tier, boolean EnableEntangledEffect, boolean EnableTopBlockBuild) {
+        super(WEB_BULLET, livingEntity, livingEntity.getWorld());
+        this.Tier = Tier;
+        this.owner = livingEntity;
+        this.EnableEntangledEffect = EnableEntangledEffect;
+        this.EnableTopBlockBuild = EnableTopBlockBuild;
     }
 
     @Override
@@ -177,6 +194,9 @@ public class WebBullet extends ThrownItemEntity {
             case 3 -> nowConfig = ladderConfigTier3;
             default -> nowConfig = ladderConfigTier1;
         }
+        if(!EnableTopBlockBuild){
+            nowConfig = new WebBridgeAction.WebLadderConfig(nowConfig.SideBlockNum(), nowConfig.BottomBlockNum(), 0, nowConfig.LargerLadder(), nowConfig.LargerLadderCountPercent());
+        }
         WebBridgeAction.BuildWebLadder(this.getWorld(), blockHitResult, nowConfig, RegCustomBlock.TEMP_WEB_BRIDGE);
         playHitEffects();
         this.discard();
@@ -187,8 +207,11 @@ public class WebBullet extends ThrownItemEntity {
         super.onEntityHit(entityHitResult);
         Entity entity = entityHitResult.getEntity();
 
+        //ShapeShifterCurseFabric.LOGGER.info("Hit entity " + entity.getName().getString());
+
         // 检测 owner 的 extra_hand 槽位是否装备了箭毒纺锤，并根据tier形态施加效果
         if (this.owner instanceof PlayerEntity player && entity instanceof LivingEntity target) {
+            //ShapeShifterCurseFabric.LOGGER.info("Check hit living entity " + entity.getName().getString());
             if (isExtraHandVenomSpindleEquipped(player)) {
                 switch (Tier) {
                     case 1 -> {
@@ -214,17 +237,24 @@ public class WebBullet extends ThrownItemEntity {
                     case 1 -> {
                         target.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 80, 1));
                         target.addStatusEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 80, 1));
-                        EntangledEffectUtils.applyEntangledEffect(target, Tier1BuffTime);
+                        if(EnableEntangledEffect){
+                            EntangledEffectUtils.applyEntangledEffect(target, Tier1BuffTime);
+                        }
+
                     }
                     case 2 -> {
                         target.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 120, 2));
                         target.addStatusEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 120, 2));
-                        EntangledEffectUtils.applyEntangledEffect(target, Tier2BuffTime);
+                        if(EnableEntangledEffect){
+                            EntangledEffectUtils.applyEntangledEffect(target, Tier2BuffTime);
+                        }
                     }
                     case 3 -> {
                         target.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 160, 3));
                         target.addStatusEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 160, 3));
-                        EntangledEffectUtils.applyEntangledEffect(target, Tier3BuffTime);
+                        if(EnableEntangledEffect){
+                            EntangledEffectUtils.applyEntangledEffect(target, Tier3BuffTime);
+                        }
                     }
                 }
             }

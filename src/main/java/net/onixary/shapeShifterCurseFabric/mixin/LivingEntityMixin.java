@@ -32,6 +32,7 @@ import net.minecraft.world.World;
 import net.onixary.shapeShifterCurseFabric.additional_power.*;
 import net.onixary.shapeShifterCurseFabric.cursed_moon.CursedMoon;
 import net.onixary.shapeShifterCurseFabric.data.StaticParams;
+import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.spider.TransformativeSpiderEntity;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomPotions;
 import net.onixary.shapeShifterCurseFabric.status_effects.RegOtherStatusEffects;
@@ -89,6 +90,7 @@ public abstract class LivingEntityMixin {
         }
 
         // 自定义实体的掉落逻辑
+        // 攻击者判定来防止干扰生电设施
         if (attacker instanceof ServerPlayerEntity) {
             if(entity instanceof WitchEntity || entity instanceof EvokerEntity) {
                 if (Math.random() < StaticParams.FAMILIAR_CURSE_POTION_DROP_PROBABILITY){
@@ -134,24 +136,24 @@ public abstract class LivingEntityMixin {
     @Unique
     private void handleFluidCocoonLoot(MobEntity mob, ServerPlayerEntity player) {
         if (AdditionalPowers.CAN_LOOT_SPIDER_FLUID_COCOON.isActive(player) && !mob.getType().getRegistryEntry().isIn(ModTags.SPIDER_FLUID_COCOON_BLACKLIST)) {
-            // 50% 掉落 0~(血上限/4f)个
+            // 40% 掉落 1~(血上限/4f)个
             float mobMaxHp = mob.getMaxHealth();
             int lootCount = (MathHelper.ceil(mobMaxHp / 4.0f));
             Random random = player.getRandom();
             if (random.nextInt(100) < 40) {
                 int finalCount = random.nextInt(lootCount);
-                if (finalCount > 0) {
-                    ItemStack stack = new ItemStack(RegCustomItem.SPIDER_FLUID_COCOON, finalCount);
-                    mob.getWorld().spawnEntity(
-                            new ItemEntity(
-                                    mob.getWorld(),
-                                    mob.getX(),
-                                    mob.getY(),
-                                    mob.getZ(),
-                                    stack
-                            )
-                    );
-                }
+                // 钳制最少掉落 1 个
+                finalCount = Math.max(finalCount, 1);
+                ItemStack stack = new ItemStack(RegCustomItem.SPIDER_FLUID_COCOON, finalCount);
+                mob.getWorld().spawnEntity(
+                        new ItemEntity(
+                                mob.getWorld(),
+                                mob.getX(),
+                                mob.getY(),
+                                mob.getZ(),
+                                stack
+                        )
+                );
             }
         }
     }

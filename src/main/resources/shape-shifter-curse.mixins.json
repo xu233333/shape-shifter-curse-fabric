@@ -92,6 +92,7 @@
     "PlayerEntityRendererFallFlyingMixin",
     "PlayerEntitySpeedFOVMixin",
     "PlayerMovementControlMixin",
+    "DisablePlayerRotationRendererMixin",
     "PlayerRotationRendererMixin",
     "accessor.ApoliClientAccessor",
     "integration.TacZ_Anim",
