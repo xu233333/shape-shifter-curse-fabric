@@ -36,6 +36,7 @@ import net.onixary.shapeShifterCurseFabric.player_form.RegPlayerForms;
 import net.onixary.shapeShifterCurseFabric.player_form.transform.TransformManager;
 import net.onixary.shapeShifterCurseFabric.util.CustomEdibleUtils;
 import net.onixary.shapeShifterCurseFabric.util.FormTextureUtils;
+import net.onixary.shapeShifterCurseFabric.util.Interface.IJumpController;
 import org.jetbrains.annotations.Nullable;
 import net.onixary.shapeShifterCurseFabric.util.PatronUtils;
 
@@ -75,6 +76,7 @@ public class ModPacketsS2C {
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.UPDATE_PATRON_LEVEL, ModPacketsS2C::receiveUpdatePatronLevel);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.OPEN_PATRON_FORM_SELECT_MENU, ModPacketsS2C::receiveOpenPatronFormSelectMenu);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.OPEN_FORM_SELECT_MENU, ModPacketsS2C::receiveOpenFormSelectMenu);
+        ClientPlayNetworking.registerGlobalReceiver(SET_NO_JUMP_TICK, ModPacketsS2C::receiveSetNoJumpTick);
     }
 
     /* 重构后不需要了 仅用于参考旧实现逻辑
@@ -287,12 +289,19 @@ public class ModPacketsS2C {
         // 还原FPM设置 或许可以通过注入式修改配置来减少此类Bug 比如在FPM读取offset时修改返回值
         TransformManager.executeClientFirstPersonReset();
         new Thread(() -> {
-            // 延时5s, 等待服务器component加载完成
-            try {
-                Thread.sleep(5000);
-                sendUpdateCustomSetting();
-            } catch (Exception e) {
-                ShapeShifterCurseFabric.LOGGER.error("Error while sending custom setting to server", e);
+            // 延时5s, 等待服务器component加载完成 重复12次 共计1min
+            boolean success = false;
+            for (int i = 0; i < 12; i++) {
+                try {
+                    Thread.sleep(5000);
+                    sendUpdateCustomSetting();
+                    success = true;
+                } catch (Exception e) {
+                    ShapeShifterCurseFabric.LOGGER.warn("Error while sending custom setting to server, retrying after 5 second", e);
+                }
+            }
+            if (!success) {
+                ShapeShifterCurseFabric.LOGGER.error("Failed to send custom setting to server after 60 seconds");
             }
         }).start();
     }
@@ -431,5 +440,14 @@ public class ModPacketsS2C {
         buf.writeUuid(target);
         buf.writeIdentifier(formID);
         ClientPlayNetworking.send(SET_FORM, buf);
+    }
+
+    public static void receiveSetNoJumpTick(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
+        int tick = buf.readInt();
+        client.execute(() -> {
+            if (client.player instanceof IJumpController jumpController) {
+                jumpController.shape_shifter_curse$setNoJumpTick(tick);
+            }
+        });
     }
 }
