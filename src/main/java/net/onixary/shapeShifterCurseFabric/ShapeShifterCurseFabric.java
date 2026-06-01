@@ -91,7 +91,7 @@ import java.util.List;
 public class ShapeShifterCurseFabric implements ModInitializer {
 
     public static final String MOD_ID = "shape-shifter-curse";
-    public static final Boolean IS_CONNECTOR_VERSION = false;  // 互联版本为true 用于区分版本
+    public static final Boolean IS_CONNECTOR_VERSION = true;  // 原版SSC为false 用于区分版本
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
