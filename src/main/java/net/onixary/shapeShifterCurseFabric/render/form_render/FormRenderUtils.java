@@ -3,6 +3,7 @@ package net.onixary.shapeShifterCurseFabric.render.form_render;
 import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.resource.ResourceType;
@@ -16,12 +17,10 @@ import net.onixary.shapeShifterCurseFabric.integration.origins.registry.ModCompo
 import net.onixary.shapeShifterCurseFabric.player_form.PlayerFormBase;
 import net.onixary.shapeShifterCurseFabric.player_form.PlayerFormDynamic;
 import net.onixary.shapeShifterCurseFabric.player_form.ability.RegPlayerFormComponent;
+import net.onixary.shapeShifterCurseFabric.util.FormTextureUtils;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Supplier;
 
 public class FormRenderUtils {
@@ -34,7 +33,6 @@ public class FormRenderUtils {
 
     public static final Identifier DEFAULT_MAS = register_MAS(ShapeShifterCurseFabric.identifier("default"), DefaultModelAnimationSystem::new);
 
-    // TODO 挂载Init
     public static void onClientInit() {
         WorldRenderEvents.END.register(context -> isRenderingInWorld = false);
         WorldRenderEvents.START.register(context -> isRenderingInWorld = true);
@@ -74,16 +72,27 @@ public class FormRenderUtils {
     }
 
     public static Vec3d getPartRotation(ModelPart part) {
-        return new Vec3d(part.xScale, part.yScale, part.zScale);
-    }
-
-    public static Vec3d getPartScale(ModelPart part) {
         var t = part.getTransform();
         return new Vec3d(t.pitch, t.yaw, t.roll);
     }
 
+    public static Vec3d getPartScale(ModelPart part) {
+        return new Vec3d(part.xScale, part.yScale, part.zScale);
+    }
+
     // Origins 版本核心 如果需要重构形态系统需要重新写一份这个函数
     public static List<FormRenderer> getPlayerAllFormRenderer(PlayerEntity player) {
+        if (FormTextureUtils.useTempFormModel && Objects.equals(player, MinecraftClient.getInstance().player)) {
+            List<FormRenderer> formRenderers = new ArrayList<>();
+            Identifier formID = FormTextureUtils.tempFormModelProcessor.getLayerID();
+            FormRenderer formRenderer = FormRenderUtils.getFormRenderer(Identifier.of("origins", "origin"), formID);
+            if (formRenderer == null) {
+                ShapeShifterCurseFabric.LOGGER.warn("ShapeShifterCurseFabric: PlayerFormDynamic.ModelID is not null, but the model is not registered: {}", formID);
+                return new ArrayList<>();
+            }
+            formRenderers.add(formRenderer);
+            return formRenderers;
+        }
         try {
             PlayerFormBase playerFormBase = RegPlayerFormComponent.PLAYER_FORM.get(player).getCurrentForm();
             if (playerFormBase instanceof PlayerFormDynamic pfd) {

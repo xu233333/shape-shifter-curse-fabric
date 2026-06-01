@@ -32,7 +32,6 @@ import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.axolotl.TAx
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.bat.BatEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.ocelot.TOcelotEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.spider.TSpiderEntityRenderer;
-import net.onixary.shapeShifterCurseFabric.integration.origins.Origins;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
 import net.onixary.shapeShifterCurseFabric.items.armors.MorphscaleArmorRenderer;
 import net.onixary.shapeShifterCurseFabric.items.armors.NetheriteMorphscaleArmorRenderer;
@@ -41,12 +40,9 @@ import net.onixary.shapeShifterCurseFabric.mana.ManaUtils;
 import net.onixary.shapeShifterCurseFabric.minion.MinionRegisterClient;
 import net.onixary.shapeShifterCurseFabric.minion.mobs.AnubisWolfMinionEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.networking.ModPacketsS2C;
-import net.onixary.shapeShifterCurseFabric.player_animation.RegPlayerAnimation;
 import net.onixary.shapeShifterCurseFabric.render.form_render.FormRenderUtils;
 import net.onixary.shapeShifterCurseFabric.render.render_layer.FurGradientRenderLayer;
-import net.onixary.shapeShifterCurseFabric.util.ClientTicker;
-import net.onixary.shapeShifterCurseFabric.util.PatronUtils;
-import net.onixary.shapeShifterCurseFabric.util.TickManager;
+import net.onixary.shapeShifterCurseFabric.util.*;
 import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.InvocationTargetException;
@@ -60,6 +56,8 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 	//public static final EntityModelLayer T_BAT_LAYER = new EntityModelLayer(new Identifier(MOD_ID, "t_bat"), "main");
 	//public static final EntityModelLayer T_AXOLOTL_LAYER = new EntityModelLayer(new Identifier(MOD_ID, "t_axolotl"), "main");
 	//public static final EntityModelLayer T_OCELOT_LAYER = new EntityModelLayer(new Identifier(MOD_ID, "t_ocelot"), "main");
+
+	public static final FormColorData formColorData = new FormColorData();
 
 	public static MinecraftClient getClient() {
 		return MinecraftClient.getInstance();
@@ -286,7 +284,6 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		RegPlayerAnimation.register();
 		registerEntityModels();
 		ModPacketsS2C.register();
 
@@ -297,7 +294,9 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 		ManaRegistriesClient.register();
 		RegCustomEntityRenderer.init();
 
-		// FormRenderUtils.onClientInit();
+		FormRenderUtils.onClientInit();
+
+		formColorData.loadFormConfig();
 
 		ClientTickEvents.END_CLIENT_TICK.register(ShapeShifterCurseFabricClient::onClientTick);
 		// 客户端能力处理

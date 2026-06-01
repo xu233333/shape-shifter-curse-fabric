@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import dev.kosmx.playerAnim.core.util.Vec3f;
 import mod.azure.azurelib.cache.object.GeoBone;
 import mod.azure.azurelib.model.GeoModel;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
@@ -14,9 +15,7 @@ import net.minecraft.util.math.Vec3d;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.player_form.PlayerFormBase;
 import net.onixary.shapeShifterCurseFabric.player_form.PlayerFormBodyType;
-import net.onixary.shapeShifterCurseFabric.player_form.ability.RegPlayerFormComponent;
-import net.onixary.shapeShifterCurseFabric.player_form.skin.PlayerSkinComponent;
-import net.onixary.shapeShifterCurseFabric.player_form.skin.RegPlayerSkinComponent;
+import net.onixary.shapeShifterCurseFabric.util.FormSkinSystem;
 import net.onixary.shapeShifterCurseFabric.util.FormTextureUtils;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
@@ -38,6 +37,9 @@ public class FormModel extends GeoModel<FormAnimatable> {
     public String Name = "";  // 用于皮肤系统 先留一下API
     public Identifier Layer = null;  // 用于皮肤系统 先留一下API
     public Identifier Form = null;  // 用于皮肤系统 先留一下API
+
+    public static int modelIDIter = 0;
+    public int modelID = -1;
 
     public boolean SlimOnly = false;
     public boolean WideOnly = false;
@@ -100,6 +102,7 @@ public class FormModel extends GeoModel<FormAnimatable> {
     public FormModel(JsonObject json) {
         this.modelJson = json;
         this.CompileModel();
+        this.modelID = modelIDIter++;
     }
 
     public void CompileModel() {
@@ -193,14 +196,14 @@ public class FormModel extends GeoModel<FormAnimatable> {
                     case "head" -> { this.Hidden_Head = true; }
                     case "body" -> { this.Hidden_Body = true; }
                     case "jacket" -> { this.Hidden_Jacket = true; }
-                    case "left_arm" -> { this.Hidden_LeftArm = true; }
-                    case "right_arm" -> { this.Hidden_RightArm = true; }
-                    case "left_sleeve" -> { this.Hidden_LeftSleeve = true; }
-                    case "right_sleeve" -> { this.Hidden_RightSleeve = true; }
-                    case "left_leg" -> { this.Hidden_LeftLeg = true; }
-                    case "right_leg" -> { this.Hidden_RightLeg = true; }
-                    case "left_pants" -> { this.Hidden_LeftPants = true; }
-                    case "right_pants" -> { this.Hidden_RightPants = true; }
+                    case "leftArm" -> { this.Hidden_LeftArm = true; }
+                    case "rightArm" -> { this.Hidden_RightArm = true; }
+                    case "leftSleeve" -> { this.Hidden_LeftSleeve = true; }
+                    case "rightSleeve" -> { this.Hidden_RightSleeve = true; }
+                    case "leftLeg" -> { this.Hidden_LeftLeg = true; }
+                    case "rightLeg" -> { this.Hidden_RightLeg = true; }
+                    case "leftPants" -> { this.Hidden_LeftPants = true; }
+                    case "rightPants" -> { this.Hidden_RightPants = true; }
                 }
             }
         }
@@ -222,7 +225,7 @@ public class FormModel extends GeoModel<FormAnimatable> {
                 JsonArray array = entry.getValue().getAsJsonArray();
                 List<String> chain = new ArrayList<>();
                 for (int i = 0; i < array.size(); i++) {
-                    chain.add(array.get(i).getAsString());
+                    chain.add(base + "_" + array.get(i).getAsString());
                 }
                 ChainData.add(chain);
             }
@@ -286,54 +289,78 @@ public class FormModel extends GeoModel<FormAnimatable> {
 
     public Identifier getTextureResource(boolean slim) {
         boolean uslim = useSlim(slim);
-        PlayerSkinComponent component = null;
-        try {
-            component = RegPlayerSkinComponent.SKIN_SETTINGS.get(entity);
-        }
-        catch (NullPointerException ignored) {
-        }
         Identifier Resource = uslim ? this.TextureResource_Slim : this.TextureResource;
         Identifier ResourceMask = uslim ? this.TextureMaskResource_Slim : this.TextureMaskResource;
-        if (component != null && component.isEnableFormColor() && ResourceMask != null) {
-            FormTextureUtils.ColorSetting colorSetting = component.getFormColor();
-            HashMap<FormTextureUtils.ColorSetting, Identifier> Cache = uslim ? ColorMask_Baked_Textures_Slim : ColorMask_Baked_Textures;
-            return readCacheOrBake(Cache, Resource, ResourceMask, colorSetting);
+        if (this.entity != null) {
+            FormSkinSystem.FormSkin formSkin = FormSkinSystem.getFormSkin(this.entity.getUuid(), this.Form);
+            if (formSkin != null) {
+                Identifier SkinResource = formSkin.getSkinTexture(uslim);
+                if (SkinResource != null) {
+                    return SkinResource;
+                }
+            }
+        }
+        if (ResourceMask != null) {
+            if (FormTextureUtils.useTempFormTexture && Objects.equals(this.entity, MinecraftClient.getInstance().player)) {
+                return FormTextureUtils.tempFormTextureProcessor.getTexture(this.modelID, uslim ? "texture_slim" : "texture", Resource, ResourceMask, UseMultiplyMask);
+            }
+            FormTextureUtils.ColorSetting colorSetting = FormTextureUtils.getPlayerColorSetting(this.entity);
+            if (colorSetting != null) {
+                HashMap<FormTextureUtils.ColorSetting, Identifier> Cache = uslim ? ColorMask_Baked_Textures_Slim : ColorMask_Baked_Textures;
+                return readCacheOrBake(Cache, Resource, ResourceMask, colorSetting);
+            }
         }
         return Resource;
     }
 
     public Identifier getOverlayTextureResource(boolean slim) {
         boolean uslim = useSlim(slim);
-        PlayerSkinComponent component = null;
-        try {
-            component = RegPlayerSkinComponent.SKIN_SETTINGS.get(entity);
-        }
-        catch (NullPointerException ignored) {
-        }
         Identifier Resource = uslim ? this.OverlayTextureResource_Slim : this.OverlayTextureResource;
         Identifier ResourceMask = uslim ? this.OverlayTextureMaskResource_Slim : this.OverlayTextureMaskResource;
-        if (component != null && component.isEnableFormColor() && ResourceMask != null) {
-            FormTextureUtils.ColorSetting colorSetting = component.getFormColor();
-            HashMap<FormTextureUtils.ColorSetting, Identifier> Cache = uslim ? ColorMask_Baked_OverlayTexture_Slim : ColorMask_Baked_OverlayTexture;
-            return readCacheOrBake(Cache, Resource, ResourceMask, colorSetting);
+        if (this.entity != null) {
+            FormSkinSystem.FormSkin formSkin = FormSkinSystem.getFormSkin(this.entity.getUuid(), this.Form);
+            if (formSkin != null) {
+                Identifier SkinResource = formSkin.getSkinOverlayTexture(uslim);
+                if (SkinResource != null) {
+                    return SkinResource;
+                }
+            }
+        }
+        if (ResourceMask != null) {
+            if (FormTextureUtils.useTempFormTexture && Objects.equals(this.entity, MinecraftClient.getInstance().player)) {
+                return FormTextureUtils.tempFormTextureProcessor.getTexture(this.modelID, uslim ? "overlay_texture_slim" : "overlay_texture", Resource, ResourceMask, UseMultiplyMask);
+            }
+            FormTextureUtils.ColorSetting colorSetting = FormTextureUtils.getPlayerColorSetting(this.entity);
+            if (colorSetting != null) {
+                HashMap<FormTextureUtils.ColorSetting, Identifier> Cache = uslim ? ColorMask_Baked_OverlayTexture_Slim : ColorMask_Baked_OverlayTexture;
+                return readCacheOrBake(Cache, Resource, ResourceMask, colorSetting);
+            }
         }
         return Resource;
     }
 
     public Identifier getEmissiveTextureResource(boolean slim) {
         boolean uslim = useSlim(slim);
-        PlayerSkinComponent component = null;
-        try {
-            component = RegPlayerSkinComponent.SKIN_SETTINGS.get(entity);
-        }
-        catch (NullPointerException ignored) {
-        }
         Identifier Resource = uslim ? this.EmissiveTextureResource_Slim : this.EmissiveTextureResource;
         Identifier ResourceMask = uslim ? this.EmissiveTextureMaskResource_Slim : this.EmissiveTextureMaskResource;
-        if (component != null && component.isEnableFormColor() && ResourceMask != null) {
-            FormTextureUtils.ColorSetting colorSetting = component.getFormColor();
-            HashMap<FormTextureUtils.ColorSetting, Identifier> Cache = uslim ? ColorMask_Baked_EmissiveTexture_Slim : ColorMask_Baked_EmissiveTexture;
-            return readCacheOrBake(Cache, Resource, ResourceMask, colorSetting);
+        if (this.entity != null) {
+            FormSkinSystem.FormSkin formSkin = FormSkinSystem.getFormSkin(this.entity.getUuid(), this.Form);
+            if (formSkin != null) {
+                Identifier SkinResource = formSkin.getSkinEmissiveTexture(uslim);
+                if (SkinResource != null) {
+                    return SkinResource;
+                }
+            }
+        }
+        if (ResourceMask != null) {
+            if (FormTextureUtils.useTempFormTexture && Objects.equals(this.entity, MinecraftClient.getInstance().player)) {
+                return FormTextureUtils.tempFormTextureProcessor.getTexture(this.modelID, uslim ? "emissive_texture_slim" : "emissive_texture", Resource, ResourceMask, UseMultiplyMask);
+            }
+            FormTextureUtils.ColorSetting colorSetting = FormTextureUtils.getPlayerColorSetting(this.entity);
+            if (colorSetting != null) {
+                HashMap<FormTextureUtils.ColorSetting, Identifier> Cache = uslim ? ColorMask_Baked_EmissiveTexture_Slim : ColorMask_Baked_EmissiveTexture;
+                return readCacheOrBake(Cache, Resource, ResourceMask, colorSetting);
+            }
         }
         return Resource;
     }
@@ -353,7 +380,7 @@ public class FormModel extends GeoModel<FormAnimatable> {
     }
 
     public final void setRotationForTailBones(float limbAngle, float limbDistance, float age, float tailDragAmount, float tailDragAmountVertical) {
-        PlayerFormBase curForm = RegPlayerFormComponent.PLAYER_FORM.get(entity).getCurrentForm();
+        PlayerFormBase curForm = FormTextureUtils.getPlayerForm_Render(entity);
         boolean isFeral = curForm.getBodyType() == PlayerFormBodyType.FERAL;
         float SWAY_RATE = 0.33333334F * 0.5F;
         float SWAY_SCALE = 0.05F;
@@ -531,6 +558,16 @@ public class FormModel extends GeoModel<FormAnimatable> {
     @Override
     public Identifier getModelResource(FormAnimatable animatable) {
         PlayerEntity player = animatable.e;
+        // Skin Model System Not Implemented
+        // if (player != null) {
+        //     FormSkinSystem.FormSkin formSkin = FormSkinSystem.getFormSkin(player.getUuid(), this.Form);
+        //     if (formSkin != null) {
+        //         Identifier formModel = formSkin.getSkinModel(useSlim(SlimMap.getOrDefault(player, false)));
+        //         if (formModel != null) {
+        //             return formModel;
+        //         }
+        //     }
+        // }
         return getModelResource(SlimMap.getOrDefault(player, false));
     }
 
