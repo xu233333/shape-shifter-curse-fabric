@@ -1,5 +1,6 @@
 package net.onixary.shapeShifterCurseFabric.custom_ui;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import me.shedaniel.autoconfig.AutoConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -33,6 +34,7 @@ import net.onixary.shapeShifterCurseFabric.util.FormColorData;
 import net.onixary.shapeShifterCurseFabric.util.FormTextureUtils;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
+import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
@@ -59,8 +61,9 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
     // LANG 从V1复制的
     private static final Text BoolBTN_ON = Text.translatable("text.cloth-config.boolean.value.true");
     private static final Text BoolBTN_OFF = Text.translatable("text.cloth-config.boolean.value.false");
-    private static final Text RIGHT_CLICK_TO_MODIFY = Text.translatable("gui.shape_shifter_curse_fabric.fcsv2.right_click_to_modify");
+    private static final Text CLICK_TO_MODIFY = Text.translatable("gui.shape_shifter_curse_fabric.fcsv2.click_to_modify");
     private static final Text HEX_TEXT = Text.translatable("gui.shape_shifter_curse_fabric.fcsv2.hex_text");
+    private static final Text V2IsEnableLayerLabel = Text.translatable("gui.shape_shifter_curse_fabric.fcsv2.is_enable_layer");
 
     // 其他UI部件
     private ButtonWidget formNameLabel = null;
@@ -86,6 +89,7 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
     private boolean isUpdateConfigWidget = false;
     private final boolean UseSliderTextBox = true;
 
+    private boolean isUpdateFromTextBox = false;
     private TextFieldWidget primaryColorTextBox;
     private TextFieldWidget accentColor1TextBox;
     private TextFieldWidget accentColor2TextBox;
@@ -138,6 +142,9 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
     private boolean isOpenPanel02 = false;
     private List<ClickableWidget> ConfigPanel01 = new ArrayList<>();
     private List<ClickableWidget> ConfigPanel02 = new ArrayList<>();
+    private boolean needTogglePanel = false;
+    private boolean ntp_isOpenPanel02 = false;
+    private int ntp_sliderIndex = -1;
 
     // 私有变量 用于部分逻辑
     private boolean isScreenInit = false;
@@ -377,22 +384,24 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         }
         // 更新Data2
         this.isUpdateConfigWidget = true;
-        if (!this.UseSliderTextBox) {
-            this.primaryColorTextBox.setText(encodeColor(this.primaryColor));
-            this.accentColor1TextBox.setText(encodeColor(this.accentColor1Color));
-            this.accentColor2TextBox.setText(encodeColor(this.accentColor2Color));
-            this.eyeColorATextBox.setText(encodeColor(this.eyeColorA));
-            this.eyeColorBTextBox.setText(encodeColor(this.eyeColorB));
-        } else {
-            int Color = 0x00FFFFFF;
-            switch (this.SliderIndex) {
-                case 0 -> { Color = this.primaryColor; }
-                case 1 -> { Color = this.accentColor1Color; }
-                case 2 -> { Color = this.accentColor2Color; }
-                case 3 -> { Color = this.eyeColorA; }
-                case 4 -> { Color = this.eyeColorB; }
+        if (!isUpdateFromTextBox) {
+            if (!this.UseSliderTextBox) {
+                this.primaryColorTextBox.setText(encodeColor(this.primaryColor));
+                this.accentColor1TextBox.setText(encodeColor(this.accentColor1Color));
+                this.accentColor2TextBox.setText(encodeColor(this.accentColor2Color));
+                this.eyeColorATextBox.setText(encodeColor(this.eyeColorA));
+                this.eyeColorBTextBox.setText(encodeColor(this.eyeColorB));
+            } else {
+                int Color = 0x00FFFFFF;
+                switch (this.SliderIndex) {
+                    case 0 -> { Color = this.primaryColor; }
+                    case 1 -> { Color = this.accentColor1Color; }
+                    case 2 -> { Color = this.accentColor2Color; }
+                    case 3 -> { Color = this.eyeColorA; }
+                    case 4 -> { Color = this.eyeColorB; }
+                }
+                this.SliderTextBox.setText(encodeColor(Color));
             }
-            this.SliderTextBox.setText(encodeColor(Color));
         }
         this.primaryGreyReverseButton.setMessage(this.primaryGreyReverse ? BoolBTN_ON : BoolBTN_OFF);
         this.accent1GreyReverseButton.setMessage(this.accent1GreyReverse ? BoolBTN_ON : BoolBTN_OFF);
@@ -471,7 +480,9 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
             }
         }
         this.isColorSettingDirty = true;
+        isUpdateFromTextBox = true;
         this.onData1Changed();
+        isUpdateFromTextBox = false;
     }
 
     // Data3 函数
@@ -589,14 +600,31 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
     }
 
     public void openPanel(int index) {
-        this.isOpenPanel02 = true;
-        this.SliderIndex = index;
-        this.updatePanel();
+        this.needTogglePanel = true;
+        this.ntp_isOpenPanel02 = true;
+        this.ntp_sliderIndex = index;
     }
 
+
     public void closePanel() {
-        this.onData3Changed();
-        this.isOpenPanel02 = false;
+        this.needTogglePanel = true;
+        this.ntp_isOpenPanel02 = false;
+        this.ntp_sliderIndex = -1;
+    }
+
+
+    public void realOpenClosePanel() {
+        if (!this.needTogglePanel) {
+            return;
+        }
+        this.isOpenPanel02 = this.ntp_isOpenPanel02;
+        this.SliderIndex = this.ntp_sliderIndex;
+        if (!isOpenPanel02) {
+            this.onData3Changed();
+        }
+        this.needTogglePanel = false;
+        this.ntp_isOpenPanel02 = false;
+        this.ntp_sliderIndex = -1;
         this.updatePanel();
     }
 
@@ -777,10 +805,10 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         this.addDrawableChild(primaryColorLabel);
         this.ConfigPanel01.add(primaryColorLabel);
         // 270,39,45,11 - PrimaryColor Button
-        ButtonWidgetOKey primaryColorButton = new ButtonWidgetOKey(BPosX + 270, BPosY + 39, 45, 11, RIGHT_CLICK_TO_MODIFY, button -> {
+        ButtonWidgetOKey primaryColorButton = new ButtonWidgetOKey(BPosX + 270, BPosY + 39, 45, 11, CLICK_TO_MODIFY, button -> {
             this.openPanel(0);
         }, ButtonWidgetOKey.DEFAULT_NARRATION_SUPPLIER);
-        primaryColorButton.canClick = ButtonWidgetOKey.RIGHT_CLICK;
+        primaryColorButton.canClick = ButtonWidgetOKey.LEFT_CLICK;
         this.addDrawableChild(primaryColorButton);
         this.ConfigPanel01.add(primaryColorButton);
         // 192,54,68,11 - AccentColor1 Label
@@ -788,10 +816,10 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         this.addDrawableChild(accentColor1Label);
         this.ConfigPanel01.add(accentColor1Label);
         // 270,54,45,11 - AccentColor1 Button
-        ButtonWidgetOKey accentColor1Button = new ButtonWidgetOKey(BPosX + 270, BPosY + 54, 45, 11, RIGHT_CLICK_TO_MODIFY, button -> {
+        ButtonWidgetOKey accentColor1Button = new ButtonWidgetOKey(BPosX + 270, BPosY + 54, 45, 11, CLICK_TO_MODIFY, button -> {
             this.openPanel(1);
         }, ButtonWidgetOKey.DEFAULT_NARRATION_SUPPLIER);
-        accentColor1Button.canClick = ButtonWidgetOKey.RIGHT_CLICK;
+        accentColor1Button.canClick = ButtonWidgetOKey.LEFT_CLICK;
         this.addDrawableChild(accentColor1Button);
         this.ConfigPanel01.add(accentColor1Button);
         // 192,69,68,11 - AccentColor2 Label
@@ -799,10 +827,10 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         this.addDrawableChild(accentColor2Label);
         this.ConfigPanel01.add(accentColor2Label);
         // 270,69,45,11 - AccentColor2 Button
-        ButtonWidgetOKey accentColor2Button = new ButtonWidgetOKey(BPosX + 270, BPosY + 69, 45, 11, RIGHT_CLICK_TO_MODIFY, button -> {
+        ButtonWidgetOKey accentColor2Button = new ButtonWidgetOKey(BPosX + 270, BPosY + 69, 45, 11, CLICK_TO_MODIFY, button -> {
             this.openPanel(2);
         }, ButtonWidgetOKey.DEFAULT_NARRATION_SUPPLIER);
-        accentColor2Button.canClick = ButtonWidgetOKey.RIGHT_CLICK;
+        accentColor2Button.canClick = ButtonWidgetOKey.LEFT_CLICK;
         this.addDrawableChild(accentColor2Button);
         this.ConfigPanel01.add(accentColor2Button);
         // 192,84,68,11 - EyeColorA Label
@@ -810,10 +838,10 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         this.addDrawableChild(eyeColorALabel);
         this.ConfigPanel01.add(eyeColorALabel);
         // 270,84,45,11 - EyeColorA Button
-        ButtonWidgetOKey eyeColorAButton = new ButtonWidgetOKey(BPosX + 270, BPosY + 84, 45, 11, RIGHT_CLICK_TO_MODIFY, button -> {
+        ButtonWidgetOKey eyeColorAButton = new ButtonWidgetOKey(BPosX + 270, BPosY + 84, 45, 11, CLICK_TO_MODIFY, button -> {
             this.openPanel(3);
         }, ButtonWidgetOKey.DEFAULT_NARRATION_SUPPLIER);
-        eyeColorAButton.canClick = ButtonWidgetOKey.RIGHT_CLICK;
+        eyeColorAButton.canClick = ButtonWidgetOKey.LEFT_CLICK;
         this.addDrawableChild(eyeColorAButton);
         this.ConfigPanel01.add(eyeColorAButton);
         // 192,99,68,11 - EyeColorB Label
@@ -821,10 +849,10 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         this.addDrawableChild(eyeColorBLabel);
         this.ConfigPanel01.add(eyeColorBLabel);
         // 270,99,45,11 - EyeColorB Button
-        ButtonWidgetOKey eyeColorBButton = new ButtonWidgetOKey(BPosX + 270, BPosY + 99, 45, 11, RIGHT_CLICK_TO_MODIFY, button -> {
+        ButtonWidgetOKey eyeColorBButton = new ButtonWidgetOKey(BPosX + 270, BPosY + 99, 45, 11, CLICK_TO_MODIFY, button -> {
             this.openPanel(4);
         }, ButtonWidgetOKey.DEFAULT_NARRATION_SUPPLIER);
-        eyeColorBButton.canClick = ButtonWidgetOKey.RIGHT_CLICK;
+        eyeColorBButton.canClick = ButtonWidgetOKey.LEFT_CLICK;
         this.addDrawableChild(eyeColorBButton);
         this.ConfigPanel01.add(eyeColorBButton);
         // 177,114,101,12 - PrimaryGreyReverse Label
@@ -1024,7 +1052,7 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         this.SliderVSlider = vSlider;
         this.ConfigPanel02.add(vSlider);
         // 177,174,101,12 - Is Enable Layer Label
-        TextWidget isEnableLayerLabel = new TextWidget(BPosX + 177, BPosY + 174, 101, 12, IsEnableLayerLabel, textRenderer).setTextColor(TextColor);
+        TextWidget isEnableLayerLabel = new TextWidget(BPosX + 177, BPosY + 174, 101, 12, V2IsEnableLayerLabel, textRenderer).setTextColor(TextColor);
         this.addDrawableChild(isEnableLayerLabel);
         this.ConfigPanel02.add(isEnableLayerLabel);
         // 288,174,27,12 - Is Enable Layer Button
@@ -1094,6 +1122,16 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         entity.headYaw = l;
     }
 
+    private void RenderEntityInViewport(DrawContext context, int viewportX, int viewportY, int viewportWidth, int viewportHeight, int x, int y, int size, int mouseX, int mouseY, LivingEntity entity) {
+        context.enableScissor(viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight);
+        try {
+            RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, MinecraftClient.IS_SYSTEM_MAC);
+            RenderEntity(context, x, y, size, mouseX, mouseY, entity);
+        } finally {
+            context.disableScissor();
+        }
+    }
+
     private void drawExtraPart(DrawContext context, int x, int y, int PartX, int PartY, int Width, int Height) {
         int realX = PartX + EXTRA_PART_START_X;
         int realY = PartY + EXTRA_PART_START_Y;
@@ -1142,7 +1180,7 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
         }
         // 20,34,142,157
         if (minecraftClient.player != null) {
-            RenderEntity(context, BPosX + 91, BPosY + 156, 50, BPosX + 91 - mouseX, BPosY + 96 - mouseY, minecraftClient.player);
+            RenderEntityInViewport(context, BPosX + 20, BPosY + 34, 142, 157, BPosX + 91, BPosY + 226, 90, BPosX + 91 - mouseX, BPosY + 96 - mouseY, minecraftClient.player);
         }
         super.render(context, mouseX, mouseY, delta);
     }
@@ -1200,31 +1238,40 @@ public class FormColorSelectMenuV2 extends Screen implements FormTextureUtils.Te
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        boolean result = super.mouseClicked(mouseX, mouseY, button);
         int BPosX = width / 2 - BG_WIDTH / 2;
         int BPosY = height / 2 - BG_HEIGHT / 2;
         if (!this.isOpenPanel02 && this.isScreenInit) {
             // 177,39,11,11
             if (mouseX > BPosX + 177 && mouseX < BPosX + 188 && mouseY > BPosY + 39 && mouseY < BPosY + 50) {
                 this.openPanel(0);
+                result = true;
             } else
             // 177,54,11,11
             if (mouseX > BPosX + 177 && mouseX < BPosX + 188 && mouseY > BPosY + 54 && mouseY < BPosY + 65) {
                 this.openPanel(1);
+                result = true;
             } else
             // 177,69,11,11
             if (mouseX > BPosX + 177 && mouseX < BPosX + 188 && mouseY > BPosY + 69 && mouseY < BPosY + 80) {
                 this.openPanel(2);
+                result = true;
             } else
             // 177,84,11,11
             if (mouseX > BPosX + 177 && mouseX < BPosX + 188 && mouseY > BPosY + 84 && mouseY < BPosY + 95) {
                 this.openPanel(3);
+                result = true;
             } else
             // 177,99,11,11
             if (mouseX > BPosX + 177 && mouseX < BPosX + 188 && mouseY > BPosY + 99 && mouseY < BPosY + 110) {
                 this.openPanel(4);
+                result = true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        if (needTogglePanel) {
+            this.realOpenClosePanel();
+        }
+        return result;
     }
 
     // 实时形态颜色显示系统
