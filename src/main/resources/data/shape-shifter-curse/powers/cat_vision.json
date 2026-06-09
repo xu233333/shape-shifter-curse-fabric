@@ -1,6 +1,14 @@
 {
-  "type": "origins:night_vision",
-  "strength": 0.4,
+  "type": "shape-shifter-curse:apply_effect",
+  "status_effects": [
+    {
+      "effect": "minecraft:night_vision",
+      "duration": 1000000000,
+      "amplifier": 0,
+      "show_particles": false,
+      "show_icon": false
+    }
+  ],
   "condition": {
     "type": "origins:submerged_in",
     "fluid": "minecraft:water",
