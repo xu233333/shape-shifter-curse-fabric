@@ -7,7 +7,6 @@
   "mixins": [
     "BreathingUnderWaterMixin",
     "CancelEntityStepSoundMixin",
-    "CursedMoonWorldMixin",
     "CustomEdibleItemMixin",
     "CustomEdiblePlayerAMixin",
     "CustomEdiblePlayerBMixin",
@@ -34,6 +33,10 @@
     "block.SweetBerryBushBlockMixin",
     "integration.AppleSkin",
     "integration.AzureLib_AzProvider",
+    "integration.ToughAsNailsDrinkInWorldPacketMixin",
+    "integration.ToughAsNailsTemperatureHelperImplMixin",
+    "integration.ToughAsNailsThirstHandlerMixin",
+    "integration.ToughAsNailsThirstHooksMixin",
     "mob.FoxEntityMixin",
     "mob.MobEntityTeamMixin",
     "mob.VillagerHostilesSensorMixin",

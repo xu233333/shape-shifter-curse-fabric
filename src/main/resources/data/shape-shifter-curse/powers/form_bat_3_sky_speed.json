@@ -1,13 +1,13 @@
 {
-    "type": "origins:action_over_time",
+    "type": "apoli:action_over_time",
     "entity_action": {
-        "type": "origins:add_velocity",
+        "type": "apoli:add_velocity",
         "space": "local_horizontal_normalized",
         "z": 0.05
     },
     "interval": 1,
     "condition": {
-        "type": "origins:and",
+        "type": "apoli:and",
         "conditions": [
             {
                 "type": "shape-shifter-curse:fluid_height",
@@ -16,14 +16,14 @@
                 "compare_to": 0
             },
             {
-                "type": "origins:on_block",
+                "type": "apoli:on_block",
                 "inverted": true
             },
             {
-                "type": "origins:sprinting"
+                "type": "apoli:sprinting"
             },
             {
-                "type": "origins:fall_flying",
+                "type": "apoli:fall_flying",
                 "inverted": true
             }
         ]

@@ -1,7 +1,6 @@
 {
     "powers": [
         "shape-shifter-curse:form_axolotl_3_no_render_arm",
-        "shape-shifter-curse:form_axolotl_3_scale",
         "shape-shifter-curse:form_axolotl_3_water_breathing",
         "shape-shifter-curse:form_axolotl_3_slipperiness",
         "shape-shifter-curse:form_axolotl_3_sneaking_speed",
@@ -46,7 +45,9 @@
         "shape-shifter-curse:air_from_splash_potions",
         "shape-shifter-curse:form_axolotl_sound",
         "shape-shifter-curse:form_axolotl_sound_hurt",
-        "shape-shifter-curse:form_axolotl_sound_key"
+        "shape-shifter-curse:form_axolotl_sound_key",
+        "shape-shifter-curse:form_tan_prevent_dirty_water_thirst",
+        "shape-shifter-curse:form_tan_axolotl_thirst_in_water"
     ],
     "icon": {
         "item": "minecraft:player_head"

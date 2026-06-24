@@ -1,6 +1,5 @@
 {
     "powers": [
-        "shape-shifter-curse:form_base_scale",
         "shape-shifter-curse:aquatic",
         "shape-shifter-curse:form_axolotl_1_swim_speed",
         "shape-shifter-curse:breathing_under_water",
@@ -18,7 +17,8 @@
         "shape-shifter-curse:form_axolotl_instinct_attack_fish",
         "shape-shifter-curse:form_instinct_use_catalyst",
         "shape-shifter-curse:form_instinct_use_golden_apple",
-        "shape-shifter-curse:form_axolotl_sound_key"
+        "shape-shifter-curse:form_axolotl_sound_key",
+        "shape-shifter-curse:form_tan_prevent_dirty_water_thirst"
     ],
     "icon": {
         "item": "minecraft:player_head"

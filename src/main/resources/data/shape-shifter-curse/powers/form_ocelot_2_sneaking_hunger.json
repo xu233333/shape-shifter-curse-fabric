@@ -1,15 +1,15 @@
 {
-    "type": "origins:exhaust",
+    "type": "apoli:exhaust",
     "interval": 10,
     "exhaustion": 0.5,
     "condition": {
-        "type": "origins:and",
+        "type": "apoli:and",
         "conditions": [
             {
-                "type": "origins:sneaking"
+                "type": "apoli:sneaking"
             },
             {
-                "type": "origins:moving"
+                "type": "apoli:moving"
             },
             {
                 "type": "shape-shifter-curse:fluid_height",

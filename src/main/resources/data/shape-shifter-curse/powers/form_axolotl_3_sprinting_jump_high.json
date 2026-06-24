@@ -1,15 +1,15 @@
 {
-    "type": "origins:modify_jump",
+    "type": "apoli:modify_jump",
     "modifier": {
         "name": "Bonus jump force while sneaking",
         "operation": "multiply_base",
         "value": 0.1
     },
     "condition": {
-        "type": "origins:and",
+        "type": "apoli:and",
         "conditions": [
             {
-                "type": "origins:sprinting"
+                "type": "apoli:sprinting"
             },
             {
                 "type": "shape-shifter-curse:fluid_height",
@@ -18,10 +18,10 @@
                 "compare_to": 0
             },
             {
-                "type": "origins:on_block"
+                "type": "apoli:on_block"
             },
             {
-                "type": "origins:air",
+                "type": "apoli:air",
                 "comparison": ">",
                 "compare_to": 0
             }
