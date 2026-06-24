@@ -10,8 +10,9 @@
         }
     ],
     "condition": {
-        "type": "shape-shifter-curse:submerged_in",
+        "type": "shape-shifter-curse:fluid_height",
         "fluid": "minecraft:water",
-        "inverted": true
+        "comparison": "<=",
+        "compare_to": 0
     }
 }
