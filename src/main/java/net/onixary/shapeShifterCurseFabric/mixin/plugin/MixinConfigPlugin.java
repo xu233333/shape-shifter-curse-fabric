@@ -27,6 +27,7 @@ public class MixinConfigPlugin implements IMixinConfigPlugin {
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.TacZ_Anim", new MixinRequiredMods(new String[]{"tacz"}, new String[]{"connectormod"}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.TacZ_AnimThird", new MixinRequiredMods(new String[]{"tacz"}, new String[]{"connectormod"}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.Apotheosis_EnchantmentHelper", new MixinRequiredMods(new String[]{}, new String[]{"apotheosis"}));
+        mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.PresenceFootstepsStepSpeedMixin", new MixinRequiredMods(new String[]{"presencefootsteps"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.ToughAsNailsDrinkInWorldPacketMixin", new MixinRequiredMods(new String[]{"toughasnails"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.ToughAsNailsTemperatureHelperImplMixin", new MixinRequiredMods(new String[]{"toughasnails"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.ToughAsNailsThirstHandlerMixin", new MixinRequiredMods(new String[]{"toughasnails"}, new String[]{}));
@@ -36,6 +37,7 @@ public class MixinConfigPlugin implements IMixinConfigPlugin {
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.forge.CurioImpl", new MixinRequiredMods(new String[]{"curios"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.forge.CurioItemImpl", new MixinRequiredMods(new String[]{"curios"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.forge.CurioUtilsImpl", new MixinRequiredMods(new String[]{"curios"}, new String[]{}));
+        mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.BOP_WebbingBlockMixin", new MixinRequiredMods(new String[]{"biomesoplenty"}, new String[]{}));
         // 这么写应该能保证互联版在Fabric能正常运行
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.extra_logic.MorphScaleRenderRegisterA", new MixinRequiredMods(new String[]{"connectormod"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.extra_logic.MorphScaleRenderRegisterB", new MixinRequiredMods(new String[]{"connectormod"}, new String[]{}));
