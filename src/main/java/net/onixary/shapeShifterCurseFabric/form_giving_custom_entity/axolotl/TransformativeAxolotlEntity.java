@@ -1,10 +1,12 @@
 package net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.axolotl;
 
 import com.google.common.collect.ImmutableList;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.sensor.Sensor;
 import net.minecraft.entity.ai.brain.sensor.SensorType;
+import net.minecraft.entity.ai.goal.ActiveTargetGoal;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
@@ -23,10 +25,21 @@ import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.ITMob;
 import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
 import net.onixary.shapeShifterCurseFabric.status_effects.BaseTransformativeStatusEffect;
 
+import java.util.Optional;
+
 import static net.onixary.shapeShifterCurseFabric.status_effects.RegTStatusEffect.TO_AXOLOTL_0_EFFECT;
 
 public class TransformativeAxolotlEntity extends AxolotlEntity implements Bucketable, ITMob {
-    protected static final ImmutableList<? extends SensorType<? extends Sensor<? super AxolotlEntity>>> SENSORS = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_ADULT, SensorType.HURT_BY, TAxolotlEntitySensor.T_AXOLOTL_ENTITY_SENSOR, SensorType.AXOLOTL_TEMPTATIONS);;
+    protected static final ImmutableList<? extends SensorType<? extends Sensor<? super AxolotlEntity>>> SENSORS;
+    public static final boolean fallBack = FabricLoader.getInstance().isModLoaded("connectormod");
+
+    static {
+        if (!fallBack) {
+            SENSORS = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_ADULT, SensorType.HURT_BY, TAxolotlEntitySensor.T_AXOLOTL_ENTITY_SENSOR, SensorType.AXOLOTL_TEMPTATIONS);;
+        } else {
+            SENSORS = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_ADULT, SensorType.HURT_BY, SensorType.AXOLOTL_TEMPTATIONS);;
+        }
+    }
 
     public TransformativeAxolotlEntity(EntityType<? extends AxolotlEntity> entityType, World world) {
         super(entityType, world);
@@ -70,6 +83,18 @@ public class TransformativeAxolotlEntity extends AxolotlEntity implements Bucket
     @Override
     public void tick() {
         super.tick();
+        if (fallBack) {
+            LivingEntity target = this.getTarget();
+            if (target instanceof PlayerEntity && !this.IsInCooldown()) {
+                PlayerEntity player = (PlayerEntity) target;
+                double distance = this.squaredDistanceTo(player);
+                if (distance <= StaticParams.CUSTOM_MOB_DEFAULT_ATTACK_RANGE * StaticParams.CUSTOM_MOB_DEFAULT_ATTACK_RANGE) {
+                    this.tryAttack(player);
+                    ITMob.applyStatusByChance(this.getStatusChance(), player, this.getStatusEffect());
+                    this.ApplyCooldown();
+                }
+            }
+        }
         this.TMob_Tick(this);
     }
 
@@ -84,5 +109,42 @@ public class TransformativeAxolotlEntity extends AxolotlEntity implements Bucket
     @Override
     protected Brain.Profile<AxolotlEntity> createBrainProfile() {
         return Brain.createProfile(MEMORY_MODULES, SENSORS);
+    }
+
+    private int cooldown = 0;
+
+    @Override
+    public void TickCooldown() {
+        if (this.cooldown > 0) {
+            this.cooldown --;
+        }
+    }
+
+    @Override
+    public void ApplyCooldown() {
+        this.cooldown = 100;
+    }
+
+    @Override
+    public boolean IsInCooldown() {
+        return this.cooldown > 0;
+    }
+
+    @Override
+    public boolean tryAttack(Entity target) {
+        if (fallBack) {
+            Optional<Boolean> attacked = this.TMob_TryAttack(this, target);
+            return attacked.orElseGet(() -> super.tryAttack(target));
+        } else {
+            return super.tryAttack(target);
+        }
+    }
+
+    @Override
+    protected void initGoals() {
+        super.initGoals();
+        if (fallBack) {
+            this.targetSelector.add(1, new ActiveTargetGoal<>(this, PlayerEntity.class, true));
+        }
     }
 }

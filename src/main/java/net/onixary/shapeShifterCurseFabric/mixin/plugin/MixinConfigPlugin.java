@@ -37,6 +37,7 @@ public class MixinConfigPlugin implements IMixinConfigPlugin {
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.forge.CurioImpl", new MixinRequiredMods(new String[]{"curios"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.forge.CurioItemImpl", new MixinRequiredMods(new String[]{"curios"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.forge.CurioUtilsImpl", new MixinRequiredMods(new String[]{"curios"}, new String[]{}));
+        mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.forge.ChangedAttributesFix", new MixinRequiredMods(new String[]{"connectormod", "changed"}, new String[]{}));
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.integration.BOP_WebbingBlockMixin", new MixinRequiredMods(new String[]{"biomesoplenty"}, new String[]{}));
         // 这么写应该能保证互联版在Fabric能正常运行
         mixinRequiredMods.put("net.onixary.shapeShifterCurseFabric.mixin.extra_logic.MorphScaleRenderRegisterA", new MixinRequiredMods(new String[]{"connectormod"}, new String[]{}));

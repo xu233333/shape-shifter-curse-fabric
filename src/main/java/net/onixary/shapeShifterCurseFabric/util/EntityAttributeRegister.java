@@ -11,21 +11,10 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 public class EntityAttributeRegister {
-    private static final Map<EntityType<? extends LivingEntity>, Supplier<DefaultAttributeContainer.Builder>> extraAttributes = new java.util.HashMap<>();
-    private static final Map<EntityType<? extends LivingEntity>, DefaultAttributeContainer> extraAttributesFinal = new java.util.HashMap<>();
-
-    public static Optional<DefaultAttributeContainer> getAttributes(EntityType<? extends LivingEntity> entityType) {
-        if (extraAttributesFinal.containsKey(entityType)) {
-            return Optional.ofNullable(extraAttributesFinal.get(entityType));
-        } else if (extraAttributes.containsKey(entityType)) {
-            extraAttributesFinal.put(entityType, extraAttributes.get(entityType).get().build());
-            return Optional.ofNullable(extraAttributesFinal.get(entityType));
-        }
-        return Optional.empty();
-    }
+    public static final Map<EntityType<? extends LivingEntity>, Supplier<DefaultAttributeContainer.Builder>> extraAttributes = new java.util.HashMap<>();
 
     public static boolean ShouldUseThisSystem() {
-        return FabricLoader.getInstance().isModLoaded("changed");
+        return FabricLoader.getInstance().isModLoaded("connectormod") && FabricLoader.getInstance().isModLoaded("changed");
     }
 
     public static void register(EntityType<? extends LivingEntity> entityType, Supplier<DefaultAttributeContainer.Builder> builder) {

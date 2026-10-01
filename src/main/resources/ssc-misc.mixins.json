@@ -9,7 +9,8 @@
     "forge.CurioImpl",
     "forge.CurioItemImpl",
     "forge.CurioUtilsImpl",
-    "integration.BOP_WebbingBlockMixin"
+    "integration.BOP_WebbingBlockMixin",
+    "forge.ChangedAttributesFix"
   ],
   "client": [
   ],
