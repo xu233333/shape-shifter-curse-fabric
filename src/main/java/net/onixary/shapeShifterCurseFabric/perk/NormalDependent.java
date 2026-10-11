@@ -36,15 +36,15 @@ public class NormalDependent implements IDependent {
     }
 
     @Override
-    public void drawDependentLine(DrawContext drawContext, Vector2i nodeCenter, PerkTree tree, PerkTree.PerkNode perkNode) {
+    public void drawDependentLine(DrawContext drawContext, int nowNodeBaseX, Vector2i nodeCenter, PerkTree tree, PerkTree.PerkNode perkNode) {
         if (this.dependentPerkIDs.length == 0) return;
         final int ox = nodeCenter.x;
         final int oy = nodeCenter.y;
         for (Identifier dependPerkID : this.dependentPerkIDs) {
             PerkTree.PerkNode dependNodeMetaData = tree.getNode(dependPerkID);
             if (dependNodeMetaData == null) continue;
-            int x1 = nodeBaseX + posXPerTier * perkNode.tier + nodeLineDependXOffset;
-            int x2 = nodeBaseX + posXPerTier * dependNodeMetaData.tier + nodeLineRootXOffset;
+            int x1 = nowNodeBaseX + posXPerTier * perkNode.tier + nodeLineDependXOffset;
+            int x2 = nowNodeBaseX + posXPerTier * dependNodeMetaData.tier + nodeLineRootXOffset;
             int y1 = perkNode.y;
             int y2 = dependNodeMetaData.y;
             if (perkNode.tier - 1 == dependNodeMetaData.tier) {
