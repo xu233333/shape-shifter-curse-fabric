@@ -19,6 +19,7 @@ import net.onixary.shapeShifterCurseFabric.perk.IDependent;
 import net.onixary.shapeShifterCurseFabric.perk.PerkTree;
 import net.onixary.shapeShifterCurseFabric.perk.PerkUtils;
 import net.onixary.shapeShifterCurseFabric.perk.RegPerks;
+import net.onixary.shapeShifterCurseFabric.perk.RootDependent;
 import net.onixary.shapeShifterCurseFabric.util.util.BaseSprite;
 import net.onixary.shapeShifterCurseFabric.util.util.ISprite;
 import net.onixary.shapeShifterCurseFabric.util.util.cost.BaseCost;
@@ -112,6 +113,12 @@ public class FormUpgradeScreen extends Screen implements WidgetEXUtils.IWidgetEX
     public static final ISprite SELECTED_SPRITE = new BaseSprite(TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT, 434, 72, 20, 20);
     public static final ISprite CAN_NOT_GAIN_SPRITE = new BaseSprite(TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT, 434, 132, 20, 20);
     public static final ISprite DEPEND_SPRITE = new BaseSprite(TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT, 434, 92, 20, 20);
+    public static final ISprite ROOT_SPRITE = new BaseSprite(TEXTURE, TEXTURE_WIDTH, TEXTURE_HEIGHT, 434, 0, 17, 17);
+
+    // 仅供界面绘制，不加入技能树节点或实际前置条件。
+    private static final int ROOT_TIER = -1;
+    private static final int ROOT_Y = 0;
+    private static final RootDependent ROOT_CONNECTION = new RootDependent(ROOT_TIER, ROOT_Y);
 
     public static final HashMap<Identifier, Boolean> perkAvailableMap = new HashMap<>();  // 仅客户端数据 仅影响渲染 仅代表服务器获取这个表时无法获取这个Perk
     public static final HashMap<Identifier, ICost> perkCostMap = new HashMap<>();  // 仅客户端数据 实际消耗由服务器决定
@@ -124,7 +131,7 @@ public class FormUpgradeScreen extends Screen implements WidgetEXUtils.IWidgetEX
     // 中心点:
     // Camera 中心
     // Node 左中
-    public int cameraPosX = 0;
+    public int cameraPosX = posXPerTier;
     public int cameraPosY = 0;
     public float cameraScale = 1.0f;  // 不一定实现 得看手动鼠标计算位置好不好算
 
@@ -284,7 +291,8 @@ public class FormUpgradeScreen extends Screen implements WidgetEXUtils.IWidgetEX
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-        context.drawTexture(TEXTURE, baseX + PERK_UI_ICON_X, baseY + PERK_UI_ICON_Y, 434, 0, PERK_UI_ICON_WIDTH, PERK_UI_ICON_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+        // 根节点用信标徽标，原本的徽标绘制注释掉
+        // context.drawTexture(TEXTURE, baseX + PERK_UI_ICON_X, baseY + PERK_UI_ICON_Y, 434, 0, PERK_UI_ICON_WIDTH, PERK_UI_ICON_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
         RenderSystem.disableBlend();
         this.drawAllNode(context, mouseX, mouseY, delta);
 
@@ -341,7 +349,10 @@ public class FormUpgradeScreen extends Screen implements WidgetEXUtils.IWidgetEX
 
     public void drawConnectLine(DrawContext context, PerkTree.PerkNode perkNode) {
         List<IDependent> depends = perkNode.dependents;
-        if (depends.isEmpty()) return;
+        if (depends.isEmpty()) {
+            ROOT_CONNECTION.drawDependentLine(context, nodeCenter, perkTree, perkNode);
+            return;
+        }
         for (IDependent depend : depends) {
             depend.drawDependentLine(context, nodeCenter, perkTree, perkNode);
         }
@@ -450,6 +461,13 @@ public class FormUpgradeScreen extends Screen implements WidgetEXUtils.IWidgetEX
         Vector2i vMousePos = getVirtualMousePos(mouseX, mouseY);
         for (PerkTree.PerkNode perkNode : tree.getAllNodes()) {
             this.drawConnectLine(context, perkNode);
+        }
+        // 已有同位置的虚拟节点时沿用其图标；空树不绘制孤立的根。
+        if (!tree.getAllNodes().isEmpty() && tree.getAllVirtualNodes().stream()
+                .noneMatch(node -> node.tier == ROOT_TIER && node.y == ROOT_Y)) {
+            ROOT_SPRITE.draw(context,
+                    nodeCenter.x + nodeBaseX + posXPerTier * ROOT_TIER + NodeDrawStartX,
+                    nodeCenter.y + ROOT_Y + NodeDrawStartY);
         }
         for (PerkTree.PerkNode perkNode : tree.getAllNodes()) {
             this.drawNode(context, perkNode, playerGainedPerk, vMousePos.x, vMousePos.y, delta);
