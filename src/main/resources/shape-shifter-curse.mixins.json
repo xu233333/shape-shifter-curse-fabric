@@ -80,7 +80,6 @@
     "SU_ServerCommandSourceMixin",
     "SU_ServerPlayerEntityMixin",
     "SU_MinecraftServerMixin",
-    "integration.LodeStoneIntegrationMixin",
     "RecipeManagerMixin",
     "ServerPlayNetworkHandlerMixin",
     "WitherIntervalMixin",
