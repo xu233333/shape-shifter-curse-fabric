@@ -2,7 +2,6 @@ package net.onixary.shapeShifterCurseFabric.networking;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -11,6 +10,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -22,12 +22,10 @@ import net.onixary.shapeShifterCurseFabric.additional_power.VirtualTotemPower;
 import net.onixary.shapeShifterCurseFabric.client.ClientPlayerStateManager;
 import net.onixary.shapeShifterCurseFabric.client.ShapeShifterCurseFabricClient;
 import net.onixary.shapeShifterCurseFabric.cursed_moon.CursedMoonClient;
-import net.onixary.shapeShifterCurseFabric.custom_ui.FormColorSelectMenu;
-import net.onixary.shapeShifterCurseFabric.custom_ui.FormColorSelectMenuV2;
-import net.onixary.shapeShifterCurseFabric.custom_ui.NormalFormSelectScreen;
+import net.onixary.shapeShifterCurseFabric.custom_ui.*;
 import net.onixary.shapeShifterCurseFabric.data.StaticParams;
+import net.onixary.shapeShifterCurseFabric.perk.PerkUtils;
 import net.onixary.shapeShifterCurseFabric.player_animation.v3.IPlayerAnimController;
-import net.onixary.shapeShifterCurseFabric.custom_ui.PatronFormSelectScreen;
 import net.onixary.shapeShifterCurseFabric.player_form.RegPlayerForms;
 import net.onixary.shapeShifterCurseFabric.player_form.utils.TransformManager;
 import net.onixary.shapeShifterCurseFabric.screen_effect.TransformOverlay;
@@ -38,6 +36,7 @@ import net.onixary.shapeShifterCurseFabric.util.Interface.IMoveController;
 import net.onixary.shapeShifterCurseFabric.util.SuperUserUtils;
 import net.onixary.shapeShifterCurseFabric.util.Verify.AuthClient;
 import net.onixary.shapeShifterCurseFabric.util.Verify.AuthFile;
+import net.onixary.shapeShifterCurseFabric.util.util.cost.ICost;
 import org.jetbrains.annotations.Nullable;
 import net.onixary.shapeShifterCurseFabric.util.PatronUtils;
 
@@ -68,8 +67,8 @@ public class ModPacketsS2C {
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.LOGIN_PACKET, ModPacketsS2C::onPlayerConnectServer);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.ACTIVE_VIRTUAL_TOTEM, ModPacketsS2C::receiveActiveVirtualTotem);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.UPDATE_POWER_ANIM_DATA_TO_CLIENT, ModPacketsS2C::receivePowerAnimationData);
-        ClientPlayNetworking.registerGlobalReceiver(ModPackets.UPDATE_PATRON_LEVEL, ModPacketsS2C::receiveUpdatePatronLevel);
-        ClientPlayNetworking.registerGlobalReceiver(ModPackets.OPEN_PATRON_FORM_SELECT_MENU, ModPacketsS2C::receiveOpenPatronFormSelectMenu);
+        ClientPlayNetworking.registerGlobalReceiver(ModPackets.OLD_UPDATE_PATRON_LEVEL, ModPacketsS2C::receiveOldUpdatePatronLevel);
+        ClientPlayNetworking.registerGlobalReceiver(ModPackets.OLD_OPEN_PATRON_FORM_SELECT_MENU, ModPacketsS2C::receiveOldOpenPatronFormSelectMenu);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.OPEN_FORM_SELECT_MENU, ModPacketsS2C::receiveOpenFormSelectMenu);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.SET_NO_JUMP_TICK, ModPacketsS2C::receiveSetNoJumpTick);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.SET_NO_MOVE_TICK, ModPacketsS2C::receiveSetNoMoveTick);
@@ -78,6 +77,10 @@ public class ModPacketsS2C {
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.REQUEST_PATRON_AUTH_FILE, ModPacketsS2C::receiveRequestPatronAuthFile);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.MELT_AUTH_SUB_KEY, ModPacketsS2C::receiveNewSubKey);
         ClientPlayNetworking.registerGlobalReceiver(ModPackets.SET_SUPER_USER_LEVEL, ModPacketsS2C::receiveSetSuperUserLevel);
+        ClientPlayNetworking.registerGlobalReceiver(ModPackets.SYNC_PERK_AVAILABILITY, ModPacketsS2C::receivePerkAvailability);
+        ClientPlayNetworking.registerGlobalReceiver(ModPackets.SYNC_PERK_DATA, ModPacketsS2C::receivePerkData);
+        ClientPlayNetworking.registerGlobalReceiver(ModPackets.OPEN_FORM_UPGRADE_MENU, ModPacketsS2C::receiveOpenFormUpgradeMenu);
+        ClientPlayNetworking.registerGlobalReceiver(ModPackets.OPEN_SELECT_SUB_FORM_MENU, ModPacketsS2C::receiveOpenSelectSubFormMenu);
     }
 
     /* 重构后不需要了 仅用于参考旧实现逻辑
@@ -390,7 +393,7 @@ public class ModPacketsS2C {
         ClientPlayNetworking.send(REQUEST_POWER_ANIM_DATA, buf);
     }
 
-    public static void receiveUpdatePatronLevel(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
+    public static void receiveOldUpdatePatronLevel(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
         int PairCount = buf.readInt();
         HashMap<UUID, Integer> map = new HashMap<>();
         for (int i = 0; i < PairCount; i++) {
@@ -403,9 +406,9 @@ public class ModPacketsS2C {
         });
     }
 
-    public static void receiveOpenPatronFormSelectMenu(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
+    public static void receiveOldOpenPatronFormSelectMenu(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
         client.execute(() -> {
-            Screen screen = new PatronFormSelectScreen(Text.literal("PatronFromSelectScreen"), client.player);
+            Screen screen = new OldPatronFormSelectScreen(Text.literal("PatronFromSelectScreen"), client.player);
             client.setScreen(screen);
         });
     }
@@ -419,10 +422,10 @@ public class ModPacketsS2C {
         });
     }
 
-    public static void sendSetPatronForm(Identifier formID) {
+    public static void sendOldSetPatronForm(Identifier formID) {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeIdentifier(formID);
-        ClientPlayNetworking.send(SET_PATRON_FORM, buf);
+        ClientPlayNetworking.send(OLD_SET_PATRON_FORM, buf);
     }
 
     public static void sendSetForm(Identifier formID, UUID target, boolean immediate) {
@@ -609,16 +612,18 @@ public class ModPacketsS2C {
 
     private static void receiveRequestPatronAuthFile(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
         UUID playerID = buf.readUuid();
+        boolean forceReReadFile = buf.readBoolean();
         client.execute(() -> {
-            AuthClient.requestAuthFile(playerID);
+            ShapeShifterCurseFabricClient.onRequestAuthFile();
+            AuthClient.requestAuthFile(playerID, forceReReadFile);
         });
     }
 
     private static void receiveNewSubKey(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
-        PacketByteBuf keyBuf = new PacketByteBuf(Unpooled.wrappedBuffer(buf.readByteArray()));
-        client.execute(() -> {
-            AuthClient.loadServerKey(keyBuf);
-        });
+        // PacketByteBuf keyBuf = new PacketByteBuf(Unpooled.wrappedBuffer(buf.readByteArray()));
+        // client.execute(() -> {
+        //     AuthClient.loadServerKey(keyBuf);
+        // });
     }
 
     private static void receiveSetSuperUserLevel(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
@@ -626,5 +631,79 @@ public class ModPacketsS2C {
         client.execute(() -> {
             SuperUserUtils.setClientSULevel(level);
         });
+    }
+
+    public static void sendAddPerk(Identifier perkTreeID, Identifier perkID) {
+        if (perkTreeID == null || perkID == null) {
+            return;
+        }
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeIdentifier(perkTreeID);
+        buf.writeIdentifier(perkID);
+        ClientPlayNetworking.send(ADD_PERK, buf);
+    }
+
+    public static void sendRequestPerkAvailability() {
+        ClientPlayNetworking.send(REQUEST_PERK_AVAILABILITY, PacketByteBufs.create());
+    }
+
+    public static void sendRequestPerkData() {
+        ClientPlayNetworking.send(REQUEST_PERK_DATA, PacketByteBufs.create());
+    }
+
+    public static void receivePerkAvailability(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
+        boolean fullUpdate = buf.readBoolean();
+        int updateCount = buf.readInt();
+        HashMap<Identifier, Boolean> perkAvailability = new HashMap<>();
+        for (int i = 0; i < updateCount; i++) {
+            Identifier perkID = buf.readIdentifier();
+            boolean available = buf.readBoolean();
+            perkAvailability.put(perkID, available);
+        }
+        client.execute(() -> {
+            if (fullUpdate) {
+                FormUpgradeScreen.perkAvailableMap.clear();
+            }
+            FormUpgradeScreen.perkAvailableMap.putAll(perkAvailability);
+        });
+    }
+
+    public static void receivePerkData(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
+        boolean fullUpdate = buf.readBoolean();
+        int updateCount = buf.readInt();
+        HashMap<Identifier, ICost> perkCostMap = new HashMap<>();
+        for (int i = 0; i < updateCount; i++) {
+            Identifier perkID = buf.readIdentifier();
+            NbtCompound nbt = buf.readNbt();
+            perkCostMap.put(perkID, ICost.fromNBT(nbt));
+        }
+        client.execute(() -> {
+            if (fullUpdate) {
+                FormUpgradeScreen.perkCostMap.clear();
+            }
+            FormUpgradeScreen.perkCostMap.putAll(perkCostMap);
+        });
+    }
+
+    public static void receiveOpenFormUpgradeMenu(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
+        int tier = buf.readInt();
+        client.execute(() -> {
+            FormUpgradeScreen screen = new FormUpgradeScreen(tier, Text.literal(""), PerkUtils.getPlayerNowPerkTree(client.player));
+            client.setScreen(screen);
+        });
+    }
+
+
+    public static void receiveOpenSelectSubFormMenu(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
+        client.execute(SubFormSelectScreen::openSubFormSelectScreen);
+    }
+
+    public static void sendSetSubForm(Identifier formID) {
+        if (formID == null) {
+            return;
+        }
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeIdentifier(formID);
+        ClientPlayNetworking.send(REQUEST_SET_SUB_FORM, buf);
     }
 }

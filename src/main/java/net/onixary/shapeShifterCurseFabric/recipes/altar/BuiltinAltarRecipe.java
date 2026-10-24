@@ -1,0 +1,212 @@
+package net.onixary.shapeShifterCurseFabric.recipes.altar;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.RecipeMatcher;
+import net.minecraft.recipe.RecipeSerializer;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.JsonHelper;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.world.World;
+import net.onixary.shapeShifterCurseFabric.blocks.block_entity.AltarBlockEntity;
+import net.onixary.shapeShifterCurseFabric.recipes.RecipeSerializerRegister;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.*;
+
+public class BuiltinAltarRecipe extends AltarRecipe {
+    public static final HashMap<Identifier, BARecipeConfig> BARecipeConfigMap = new HashMap<>();
+
+    public static record BARecipeConfig (
+            BiPredicate<AltarBlockEntity, World> match,
+            BiFunction<AltarBlockEntity, DynamicRegistryManager, ItemStack> craft,
+            Function<DynamicRegistryManager, ItemStack> virtualOutput,
+            Predicate<PlayerEntity> canCraft,
+            int recipeTime,
+            int fuelUsage,
+            Predicate<AltarBlockEntity> isInputsCountEnough,
+            Consumer<AltarBlockEntity> consumeInputs,
+            Function<AltarBlockEntity, List<ItemStack>> extraOutput
+    ) {
+        public void register(Identifier id) {
+            BARecipeConfigMap.put(id, this);
+        }
+
+        public static @Nullable BARecipeConfig get(Identifier id) {
+            return BARecipeConfigMap.get(id);
+        }
+    }
+
+    public static class BARecipeConfigBuilder {
+        BiPredicate<AltarBlockEntity, World> match = (altarBlockEntity, world) -> false;
+        BiFunction<AltarBlockEntity, DynamicRegistryManager, ItemStack> craft = (altarBlockEntity, registryManager) -> ItemStack.EMPTY;
+        Function<DynamicRegistryManager, ItemStack> virtualOutput = registryManager -> ItemStack.EMPTY;
+        Predicate<PlayerEntity> canCraft = player -> true;
+        int recipeTime = 200;
+        int fuelUsage = 1;
+        Predicate<AltarBlockEntity> isInputsCountEnough = altarBlockEntity -> true;
+        Consumer<AltarBlockEntity> consumeInputs = altarBlockEntity -> {};
+        Function<AltarBlockEntity, List<ItemStack>> extraOutput = altarBlockEntity -> List.of();
+
+        public BARecipeConfigBuilder() { }
+
+        public BARecipeConfigBuilder match(BiPredicate<AltarBlockEntity, World> match) { this.match = match; return this; }
+        public BARecipeConfigBuilder craft(BiFunction<AltarBlockEntity, DynamicRegistryManager, ItemStack> craft) { this.craft = craft; return this; }
+        public BARecipeConfigBuilder virtualOutput(Function<DynamicRegistryManager, ItemStack> virtualOutput) { this.virtualOutput = virtualOutput; return this; }
+        public BARecipeConfigBuilder canCraft(Predicate<PlayerEntity> canCraft) { this.canCraft = canCraft; return this; }
+        public BARecipeConfigBuilder recipeTime(int recipeTime) { this.recipeTime = recipeTime; return this; }
+        public BARecipeConfigBuilder fuelUsage(int fuelUsage) { this.fuelUsage = fuelUsage; return this; }
+        public BARecipeConfigBuilder isInputsCountEnough(Predicate<AltarBlockEntity> isInputsCountEnough) { this.isInputsCountEnough = isInputsCountEnough; return this; }
+        public BARecipeConfigBuilder consumeInputs(Consumer<AltarBlockEntity> consumeInputs) { this.consumeInputs = consumeInputs; return this; }
+        public BARecipeConfigBuilder extraOutput(Function<AltarBlockEntity, List<ItemStack>> extraOutput) { this.extraOutput = extraOutput; return this; }
+        public BARecipeConfig build() { return new BARecipeConfig(match, craft, virtualOutput, canCraft, recipeTime, fuelUsage, isInputsCountEnough, consumeInputs, extraOutput); }
+
+        // TODO 还差几个预设生成器 比如match函数 让它支持Shape和Shapeless
+
+        // 坏了 还得整TriPredicate TriFunction 顺带在整个TriConsumer吧 函数还得传配方自身
+        public static BiPredicate<AltarBlockEntity, World> createMatch_Shapeless(DefaultedList<Ingredient> input, Ingredient catalyst) {
+            return (altarBlockEntity, world) -> {
+                if (catalyst != null) {
+                    ItemStack itemStack = altarBlockEntity.getStack(9);
+                    if (!catalyst.test(itemStack)) {
+                        return false;
+                    }
+                }
+
+                RecipeMatcher recipeMatcher = new RecipeMatcher();
+                int i = 0;
+                for(int j = 0; j < 9; ++j) {
+                    ItemStack itemStack = altarBlockEntity.getStack(j);
+                    if (!itemStack.isEmpty()) {
+                        ++i;
+                        recipeMatcher.addInput(itemStack, 1);
+                    }
+                }
+
+                // return i == input.size() && recipeMatcher.match(this, (IntList)null);
+                return false;
+            };
+        }
+    }
+
+    public final Identifier id;
+    public final BARecipeConfig recipeConfig;
+
+    public BuiltinAltarRecipe(Identifier id, BARecipeConfig recipeConfig) {
+        this.id = id;
+        this.recipeConfig = recipeConfig;
+    }
+
+    @Override
+    public int recipeTime() {
+        return this.recipeConfig.recipeTime;
+    }
+
+    @Override
+    public boolean matches(SidedInventory inventory, World world) {
+        if (inventory instanceof AltarBlockEntity altarBlockEntity) {
+            return this.recipeConfig.match.test(altarBlockEntity, world);
+        }
+        return false;
+    }
+
+    @Override
+    public ItemStack craft(SidedInventory inventory, DynamicRegistryManager registryManager) {
+        if (inventory instanceof AltarBlockEntity altarBlockEntity) {
+            return this.recipeConfig.craft.apply(altarBlockEntity, registryManager);
+        }
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public boolean fits(int width, int height) {
+        return true;
+    }
+
+    @Override
+    public ItemStack getOutput(DynamicRegistryManager registryManager) {
+        return this.recipeConfig.virtualOutput.apply(registryManager);
+    }
+
+    @Override
+    public Identifier getId() {
+        return this.id;
+    }
+
+    @Override
+    public boolean canCraft(@Nullable PlayerEntity player) {
+        return this.recipeConfig.canCraft.test(player);
+    }
+
+    @Override
+    public boolean InputsCountEnough(SidedInventory inventory) {
+        if (inventory instanceof AltarBlockEntity altarBlockEntity) {
+            return this.recipeConfig.isInputsCountEnough.test(altarBlockEntity);
+        }
+        return false;
+    }
+
+    @Override
+    public void consumeInputs(SidedInventory inventory) {
+        if (inventory instanceof AltarBlockEntity altarBlockEntity) {
+            this.recipeConfig.consumeInputs.accept(altarBlockEntity);
+        }
+    }
+
+    @Override
+    public List<ItemStack> getExtraOutput(SidedInventory inventory) {
+        if (inventory instanceof AltarBlockEntity altarBlockEntity) {
+            return this.recipeConfig.extraOutput.apply(altarBlockEntity);
+        }
+        return List.of();
+    }
+
+    @Override
+    public int fuelUsage() {
+        return this.recipeConfig.fuelUsage;
+    }
+
+    @Override
+    public RecipeSerializer<?> getSerializer() {
+        return RecipeSerializerRegister.BUILTIN_ALTAR_RECIPE;
+    }
+
+    public static class Serializer implements RecipeSerializer<BuiltinAltarRecipe> {
+        public BuiltinAltarRecipe read(Identifier identifier, JsonObject jsonObject) {
+            String configRaw = JsonHelper.getString(jsonObject, "recipe_config_id", "");
+            if (configRaw.isEmpty()) {
+                throw new JsonSyntaxException("recipe_config_id is required");
+            }
+            Identifier configId = Identifier.tryParse(configRaw);
+            if (configId == null) {
+                throw new JsonSyntaxException("recipe_config_id must be a valid identifier");
+            }
+            BARecipeConfig recipeConfig = BuiltinAltarRecipe.BARecipeConfig.get(configId);
+            return new BuiltinAltarRecipe(identifier, recipeConfig);
+        }
+
+        public BuiltinAltarRecipe read(Identifier identifier, PacketByteBuf packetByteBuf) {
+            Identifier configId = packetByteBuf.readIdentifier();
+            if (configId == null) {
+                throw new RuntimeException("recipe_config_id must be a valid identifier");
+            }
+            BARecipeConfig recipeConfig = BuiltinAltarRecipe.BARecipeConfig.get(configId);
+            if (recipeConfig == null) {
+                throw new RuntimeException("recipe_config_id must be a valid identifier");
+            }
+            return new BuiltinAltarRecipe(identifier, recipeConfig);
+        }
+
+        public void write(PacketByteBuf packetByteBuf, BuiltinAltarRecipe altarRecipe) {
+            packetByteBuf.writeIdentifier(altarRecipe.getId());
+        }
+    }
+}

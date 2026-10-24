@@ -1,0 +1,217 @@
+package net.onixary.shapeShifterCurseFabric.recipes.altar;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import it.unimi.dsi.fastutil.ints.IntList;
+import net.minecraft.advancement.Advancement;
+import net.minecraft.advancement.AdvancementProgress;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.*;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.JsonHelper;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.world.World;
+import net.onixary.shapeShifterCurseFabric.recipes.RecipeSerializerRegister;
+import org.jetbrains.annotations.Nullable;
+
+public class AltarShapelessRecipe extends AltarRecipe {
+    public final Identifier id;
+    public final ItemStack output;
+    public final DefaultedList<Ingredient> input;
+    public final @Nullable Ingredient catalyst;
+    public final int recipeTime;
+    public final int fuelCostPerTick;
+
+    public final @Nullable Identifier requireAdvancement;
+
+    public AltarShapelessRecipe(Identifier id, ItemStack output, DefaultedList<Ingredient> input, Ingredient catalyst, int recipeTime, int fuelCostPerTick, Identifier requireAdvancement) {
+        this.id = id;
+        this.output = output;
+        this.input = input;
+        this.recipeTime = recipeTime;
+        this.catalyst = catalyst;
+        this.fuelCostPerTick = fuelCostPerTick;
+        this.requireAdvancement = requireAdvancement;
+    }
+
+    @Override
+    public DefaultedList<Ingredient> getIngredients() {
+        return input;
+    }
+
+    @Override
+    public int recipeTime() {
+        return recipeTime;
+    }
+
+    @Override
+    public boolean canCraft(PlayerEntity player) {
+        if (requireAdvancement == null) {
+            return true;
+        }
+        if (player instanceof ServerPlayerEntity playerEntity) {
+            MinecraftServer server = playerEntity.getServer();
+            if (server == null) {
+                return false;
+            }
+            Advancement advancement = server.getAdvancementLoader().get(requireAdvancement);
+            if (advancement == null) {
+                return false;
+            }
+            AdvancementProgress advancementProgress = playerEntity.getAdvancementTracker().getProgress(advancement);
+            if (advancementProgress == null) {
+                return false;
+            }
+            return advancementProgress.isDone();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean matches(SidedInventory inventory, World world) {
+        if (this.catalyst != null) {
+            ItemStack itemStack = inventory.getStack(9);
+            if (!this.catalyst.test(itemStack)) {
+                return false;
+            }
+        }
+
+        RecipeMatcher recipeMatcher = new RecipeMatcher();
+        int i = 0;
+        for(int j = 0; j < 9; ++j) {
+            ItemStack itemStack = inventory.getStack(j);
+            if (!itemStack.isEmpty()) {
+                ++i;
+                recipeMatcher.addInput(itemStack, 1);
+            }
+        }
+
+        return i == this.input.size() && recipeMatcher.match(this, (IntList)null);
+    }
+
+    @Override
+    public int fuelUsage() {
+        return fuelCostPerTick;
+    }
+
+    @Override
+    public ItemStack craft(SidedInventory inventory, DynamicRegistryManager registryManager) {
+        return this.output.copy();
+    }
+
+    @Override
+    public boolean fits(int width, int height) {
+        return width * height >= this.input.size();
+    }
+
+    @Override
+    public ItemStack getOutput(DynamicRegistryManager registryManager) {
+        return this.output;
+    }
+
+    @Override
+    public Identifier getId() {
+        return this.id;
+    }
+
+    @Override
+    public RecipeSerializer<?> getSerializer() {
+        return RecipeSerializerRegister.ALTAR_SHAPELESS_RECIPE;
+    }
+
+    public static class Serializer implements RecipeSerializer<AltarShapelessRecipe> {
+        public AltarShapelessRecipe read(Identifier identifier, JsonObject jsonObject) {
+            int time = JsonHelper.getInt(jsonObject, "time", 200);
+            int moondustCost = JsonHelper.getInt(jsonObject, "moondust_cost", -1);
+            if (time <= 0 || moondustCost < -1 || moondustCost > Integer.MAX_VALUE / 800) {
+                throw new com.google.gson.JsonSyntaxException("Invalid altar time or moondust_cost");
+            }
+            DefaultedList<Ingredient> defaultedList = getIngredients(JsonHelper.getArray(jsonObject, "ingredients"));
+            Ingredient catalyst = null;
+            if (jsonObject.has("catalyst")) {
+                catalyst = Ingredient.fromJson(jsonObject.get("catalyst"), true);
+            }
+            Identifier requireAdvancement = null;
+            if (jsonObject.has("require_advancement")) {
+                requireAdvancement = new Identifier(JsonHelper.getString(jsonObject, "require_advancement"));
+            }
+            int fuelCost = JsonHelper.getInt(jsonObject, "fuel_cost", 1);
+            if (fuelCost < 0 || (long) fuelCost * time > Integer.MAX_VALUE) {
+                throw new com.google.gson.JsonSyntaxException("Invalid altar fuel_cost");
+            }
+            if (defaultedList.isEmpty()) {
+                throw new JsonParseException("No ingredients for altar shapeless recipe");
+            } else if (defaultedList.size() > 9) {
+                throw new JsonParseException("Too many ingredients for altar shapeless recipe");
+            } else {
+                ItemStack itemStack = ShapedRecipe.outputFromJson(JsonHelper.getObject(jsonObject, "result"));
+                AltarShapelessRecipe recipe = new AltarShapelessRecipe(identifier, itemStack, defaultedList, catalyst, time, fuelCost, requireAdvancement);
+                recipe.totalFuelCost = moondustCost < 0 ? -1 : moondustCost * 800;
+                return recipe;
+            }
+        }
+
+        private static DefaultedList<Ingredient> getIngredients(JsonArray json) {
+            DefaultedList<Ingredient> defaultedList = DefaultedList.of();
+            for(int i = 0; i < json.size(); ++i) {
+                Ingredient ingredient = Ingredient.fromJson(json.get(i), false);
+                if (!ingredient.isEmpty()) {
+                    defaultedList.add(ingredient);
+                }
+            }
+            return defaultedList;
+        }
+
+        public AltarShapelessRecipe read(Identifier identifier, PacketByteBuf packetByteBuf) {
+            Ingredient catalyst = null;
+            if (packetByteBuf.readBoolean()) {
+                catalyst = Ingredient.fromPacket(packetByteBuf);
+            }
+            Identifier requireAdvancement = null;
+            if (packetByteBuf.readBoolean()) {
+                requireAdvancement = packetByteBuf.readIdentifier();
+            }
+            int i = packetByteBuf.readVarInt();
+            DefaultedList<Ingredient> defaultedList = DefaultedList.ofSize(i, Ingredient.EMPTY);
+            for(int j = 0; j < defaultedList.size(); ++j) {
+                defaultedList.set(j, Ingredient.fromPacket(packetByteBuf));
+            }
+            ItemStack itemStack = packetByteBuf.readItemStack();
+            int time = packetByteBuf.readVarInt();
+            int fuelCost = packetByteBuf.readVarInt();
+            AltarShapelessRecipe recipe = new AltarShapelessRecipe(identifier, itemStack, defaultedList, catalyst, time, fuelCost, requireAdvancement);
+            recipe.totalFuelCost = packetByteBuf.readVarInt();
+            return recipe;
+        }
+
+        public void write(PacketByteBuf packetByteBuf, AltarShapelessRecipe shapelessRecipe) {
+            if (shapelessRecipe.catalyst != null) {
+                packetByteBuf.writeBoolean(true);
+                shapelessRecipe.catalyst.write(packetByteBuf);
+            } else {
+                packetByteBuf.writeBoolean(false);
+            }
+            if (shapelessRecipe.requireAdvancement != null) {
+                packetByteBuf.writeBoolean(true);
+                packetByteBuf.writeIdentifier(shapelessRecipe.requireAdvancement);
+            } else {
+                packetByteBuf.writeBoolean(false);
+            }
+            packetByteBuf.writeVarInt(shapelessRecipe.input.size());
+            for(Ingredient ingredient : shapelessRecipe.input) {
+                ingredient.write(packetByteBuf);
+            }
+            packetByteBuf.writeItemStack(shapelessRecipe.output);
+            packetByteBuf.writeVarInt(shapelessRecipe.recipeTime);
+            packetByteBuf.writeVarInt(shapelessRecipe.fuelCostPerTick);
+            packetByteBuf.writeVarInt(shapelessRecipe.totalFuelCost);
+        }
+    }
+}

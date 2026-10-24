@@ -1,0 +1,378 @@
+package net.onixary.shapeShifterCurseFabric.blocks.block_entity;
+
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.LockableContainerBlockEntity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.Inventories;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.recipe.*;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.screen.PropertyDelegate;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.ScreenHandlerContext;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
+import net.onixary.shapeShifterCurseFabric.blocks.RegCustomBlock;
+import net.onixary.shapeShifterCurseFabric.custom_ui.AltarCraftUIHandler;
+import net.onixary.shapeShifterCurseFabric.custom_ui.RegMenuType;
+import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
+import net.onixary.shapeShifterCurseFabric.recipes.RecipeUtils;
+import net.onixary.shapeShifterCurseFabric.recipes.altar.AltarRecipe;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public class AltarBlockEntity extends LockableContainerBlockEntity implements SidedInventory, RecipeUnlocker, RecipeInputProvider {
+    // 进度锁是个不错的设计 能降低难度(毕竟之前做限制进度使用得上对应阶段的材料 有些材料是真不好量产 有这个就能用便宜材料了)
+    public UUID lastUser;
+    public AltarRecipe nowRecipe;
+    private @Nullable Identifier resumeRecipeId;
+    public static final int maxFuel = 102400;
+    public int progress = 0;
+    public int totalProgress = 0;  // Only Client
+    public int fuelTime = 0;
+    // public int totalFuelTime = 0;  // Only Client
+    public final DefaultedList<ItemStack> inventory;
+
+    public boolean needCheckRecipe = true;
+    public final PropertyDelegate propertyDelegate;
+
+    public static final int[] TOP = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+    public static final int[] SIDE = {10};
+    public static final int[] BOTTOM = {11};
+
+    public static final HashMap<Item, Integer> fuelTimeMap = new HashMap<>();
+
+    private final RecipeManager.MatchGetter<SidedInventory, ? extends AltarRecipe> matchGetter;
+
+    static {
+        fuelTimeMap.put(RegCustomItem.UNTREATED_MOONDUST, 800);
+    }
+
+    public static boolean canFuel(ItemStack stack) {
+        return fuelTimeMap.containsKey(stack.getItem());
+    }
+
+    public static int getFuelTime(ItemStack stack) {
+        return fuelTimeMap.getOrDefault(stack.getItem(), 0);
+    }
+
+    public AltarBlockEntity(BlockPos blockPos, BlockState blockState) {
+        super(RegCustomBlock.ALTAR_BLOCK_ENTITY, blockPos, blockState);
+        this.inventory = DefaultedList.ofSize(12, ItemStack.EMPTY);
+        this.matchGetter = RecipeManager.createCachedMatchGetter(RecipeUtils.ALTAR_RECIPE);
+        this.propertyDelegate = new PropertyDelegate() {
+            public int get(int index) {
+                switch (index) {
+                    case 0 -> {
+                        return AltarBlockEntity.this.progress;
+                    }
+                    case 1 -> {
+                        return AltarBlockEntity.this.totalProgress;
+                    }
+                    case 2 -> {
+                        return AltarBlockEntity.this.fuelTime & 0xFFFF;
+                    }
+                    case 3 -> {
+                        return (AltarBlockEntity.this.fuelTime >>> 16) & 0xFFFF;
+                    }
+                    default -> {
+                        return 0;
+                    }
+                }
+            }
+
+            public void set(int index, int value) {
+                switch (index) {
+                    case 0 -> AltarBlockEntity.this.progress = value;
+                    case 1 -> AltarBlockEntity.this.totalProgress = value;
+                    case 2 -> AltarBlockEntity.this.fuelTime = (AltarBlockEntity.this.fuelTime & 0xFFFF0000) | (value & 0xFFFF);
+                    case 3 -> AltarBlockEntity.this.fuelTime = (AltarBlockEntity.this.fuelTime & 0x0000FFFF) | ((value & 0xFFFF) << 16);
+                }
+
+            }
+
+            public int size() {
+                return 4;
+            }
+        };
+    }
+
+    @Override
+    protected Text getContainerName() {
+        return Text.translatable("block.shape-shifter-curse.altar");
+    }
+
+    @Override
+    protected ScreenHandler createScreenHandler(int syncId, PlayerInventory playerInventory) {
+        return new AltarCraftUIHandler(RegMenuType.AltarCraftUI, syncId, playerInventory, this, ScreenHandlerContext.EMPTY, this.propertyDelegate);
+    }
+
+    @Override
+    public int[] getAvailableSlots(Direction side) {
+        return switch (side) {
+            case UP -> TOP;
+            case DOWN -> BOTTOM;
+            case EAST, WEST, NORTH, SOUTH -> SIDE;
+        };
+    }
+
+    @Override
+    public boolean canInsert(int slot, ItemStack stack, @Nullable Direction dir) {
+        return switch (slot) {
+            case 0, 1, 2, 3, 4, 5, 6, 7, 8 -> true;
+            case 9 -> false;
+            case 10 -> canFuel(stack);
+            case 11 -> false;
+            default -> false;
+        };
+    }
+
+    @Override
+    public boolean canExtract(int slot, ItemStack stack, Direction dir) {
+        return true;
+    }
+
+    @Override
+    public int size() {
+        return inventory.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        for(ItemStack itemStack : this.inventory) {
+            if (!itemStack.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public ItemStack getStack(int slot) {
+        return this.inventory.get(slot);
+    }
+
+    @Override
+    public ItemStack removeStack(int slot, int amount) {
+        this.checkRecipe();
+        return Inventories.splitStack(this.inventory, slot, amount);
+    }
+
+    @Override
+    public ItemStack removeStack(int slot) {
+        this.checkRecipe();
+        return Inventories.removeStack(this.inventory, slot);
+    }
+
+    public void setStack(int slot, ItemStack stack) {
+        ItemStack itemStack = (ItemStack)this.inventory.get(slot);
+        boolean bl = !stack.isEmpty() && ItemStack.canCombine(itemStack, stack);
+        this.inventory.set(slot, stack);
+        if (stack.getCount() > this.getMaxCountPerStack()) {
+            stack.setCount(this.getMaxCountPerStack());
+        }
+        this.checkRecipe();
+        this.markDirty();
+    }
+
+    @Override
+    public boolean canPlayerUse(PlayerEntity player) {
+        return Inventory.canPlayerUse(this, player);
+    }
+
+    @Override
+    public void provideRecipeInputs(RecipeMatcher finder) {
+        for(ItemStack itemStack : this.inventory) {
+            finder.addInput(itemStack);
+        }
+    }
+
+    @Override
+    public void setLastRecipe(@Nullable Recipe<?> recipe) {
+
+    }
+
+    @Override
+    public @Nullable Recipe<?> getLastRecipe() {
+        return null;
+    }
+
+    @Override
+    public void clear() {
+        this.inventory.clear();
+    }
+
+    public void checkRecipe() {
+        World world = this.getWorld();
+        if (world == null) {
+            return;
+        }
+        Identifier savedRecipe = this.resumeRecipeId;
+        int savedProgress = this.progress;
+        int savedTotal = this.totalProgress;
+        this.resumeRecipeId = null;
+        if (this.nowRecipe != null) {
+            if (world != null && this.canCraftRecipe(world.getRegistryManager())) {
+                return;
+            }
+            this.nowRecipe = null;
+            this.totalProgress = 0;
+        }
+        Optional<? extends AltarRecipe> altarRecipe = this.matchGetter.getFirstMatch(this, world);
+        if (altarRecipe.isPresent()) {
+            this.nowRecipe = altarRecipe.get();
+            this.totalProgress = this.nowRecipe.recipeTime();
+            if (!(world != null && this.canCraftRecipe(world.getRegistryManager()))) {
+                this.nowRecipe = null;
+                this.totalProgress = 0;
+            }
+        } else {
+            this.nowRecipe = null;
+            this.totalProgress = 0;
+        }
+        this.progress = this.nowRecipe != null && this.nowRecipe.getId().equals(savedRecipe)
+                && savedTotal == this.totalProgress
+                ? Math.max(0, Math.min(savedProgress, this.totalProgress - 1)) : 0;
+    }
+
+    private boolean canCraftRecipe(DynamicRegistryManager registryManager) {
+        if (this.nowRecipe == null) {
+            return false;
+        }
+        PlayerEntity playerEntity = null;
+        World world = this.getWorld();
+        if (world != null && this.lastUser != null) {
+            playerEntity = world.getPlayerByUuid(this.lastUser);
+        }
+        if (!nowRecipe.canCraft(playerEntity)) {
+            return false;
+        }
+        if (!nowRecipe.matches(this, world) || !nowRecipe.InputsCountEnough(this)) {
+            return false;
+        }
+        ItemStack output = this.nowRecipe.craft(this, registryManager);
+        if (output.isEmpty() || this.inventory.get(11).isEmpty()) {
+            return true;
+        }
+        ItemStack outputSlot = this.inventory.get(11);
+        if (!ItemStack.canCombine(output, outputSlot)) {
+            return false;
+        }
+        if (outputSlot.getCount() + output.getCount() <= outputSlot.getMaxCount()) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean craftRecipe(DynamicRegistryManager registryManager) {
+        if (canCraftRecipe(registryManager)) {
+            ItemStack output = this.nowRecipe.craft(this, registryManager);
+            ItemStack outputSlot = this.inventory.get(11);
+            if (outputSlot.isEmpty()) {
+                this.inventory.set(11, output.copy());
+            } else if (ItemStack.canCombine(output, outputSlot)) {
+                outputSlot.increment(output.getCount());
+            } else {
+                return false;
+            }
+            List<ItemStack> extraOutput = this.nowRecipe.getExtraOutput(this);
+            if (extraOutput != null) {
+                World world = this.getWorld();
+                BlockPos pos = this.getPos().up();
+                if (world != null) {
+                    for (ItemStack extra : extraOutput) {
+                        world.spawnEntity(new ItemEntity(world, pos.getX(), pos.getY(), pos.getZ(), extra));
+                    }
+                }
+            }
+            this.nowRecipe.consumeInputs(this);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public void tick(World world, BlockPos pos, BlockState state, AltarBlockEntity blockEntity) {
+        if (needCheckRecipe || (this.nowRecipe != null && !canCraftRecipe(world.getRegistryManager()))) {
+            this.checkRecipe();
+            needCheckRecipe = false;
+        }
+        boolean itemChanged = false;
+        ItemStack fuel = this.inventory.get(10);
+        if (!fuel.isEmpty()) {
+            int fuelRealTime = getFuelTime(fuel);
+            if (fuelRealTime > 0 && this.fuelTime + fuelRealTime <= maxFuel) {
+                this.fuelTime += fuelRealTime;
+                fuel.decrement(1);
+                itemChanged = true;
+            }
+        }
+        if (this.nowRecipe != null) {
+            int fuelCost = nowRecipe.fuelUsage(this.progress);
+            if (this.fuelTime >= fuelCost) {
+                this.fuelTime -= fuelCost;
+                this.progress++;
+                this.markDirty();
+            }
+            // With no fuel, pause rather than charging again for completed work.
+
+            if (this.progress >= this.nowRecipe.recipeTime()) {
+                if (craftRecipe(world.getRegistryManager())) {
+                    blockEntity.setLastRecipe(this.nowRecipe);
+                }
+                this.progress = 0;
+                itemChanged = true;
+            }
+        }
+
+        if (itemChanged) {
+            this.checkRecipe();
+            this.markDirty();
+        }
+    }
+
+    public void readNbt(NbtCompound nbt) {
+        super.readNbt(nbt);
+        Inventories.readNbt(nbt, this.inventory);
+        if (nbt.contains("LastUser")) {
+            this.lastUser = nbt.getUuid("LastUser");
+        } else {
+            this.lastUser = null;
+        }
+        this.fuelTime = nbt.getInt("FuelTime");
+        this.progress = nbt.getInt("Process");
+        this.totalProgress = nbt.getInt("TotalProcess");
+        this.resumeRecipeId = Identifier.tryParse(nbt.getString("Recipe"));
+        this.nowRecipe = null;
+        this.needCheckRecipe = true;
+    }
+
+    protected void writeNbt(NbtCompound nbt) {
+        super.writeNbt(nbt);
+        Inventories.writeNbt(nbt, this.inventory);
+        if (this.lastUser != null) {
+            nbt.putUuid("LastUser", this.lastUser);
+        }
+        nbt.putInt("FuelTime", this.fuelTime);
+        nbt.putInt("Process", this.progress);
+        nbt.putInt("TotalProcess", this.totalProgress);
+        Identifier recipeId = this.nowRecipe != null ? this.nowRecipe.getId() : this.resumeRecipeId;
+        if (recipeId != null) {
+            nbt.putString("Recipe", recipeId.toString());
+        }
+    }
+}

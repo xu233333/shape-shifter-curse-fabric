@@ -39,6 +39,7 @@ import net.onixary.shapeShifterCurseFabric.config.ClientConfig;
 import net.onixary.shapeShifterCurseFabric.config.CommonConfig;
 import net.onixary.shapeShifterCurseFabric.config.PlayerCustomConfig;
 import net.onixary.shapeShifterCurseFabric.cursed_moon.CursedMoon;
+import net.onixary.shapeShifterCurseFabric.custom_ui.RegMenuType;
 import net.onixary.shapeShifterCurseFabric.entity.RegCustomEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.RegTransformativeEntity;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.RegTransformativeEntitySpawnEgg;
@@ -65,6 +66,8 @@ import net.onixary.shapeShifterCurseFabric.player_form.utils.PlayerFormComponent
 import net.onixary.shapeShifterCurseFabric.player_form.utils.TransformManager;
 import net.onixary.shapeShifterCurseFabric.recipes.BrewingRecipeReloadListener;
 import net.onixary.shapeShifterCurseFabric.recipes.RecipeSerializerRegister;
+import net.onixary.shapeShifterCurseFabric.recipes.RecipeUtils;
+import net.onixary.shapeShifterCurseFabric.recipes.altar.RegBuiltinAlterRecipe;
 import net.onixary.shapeShifterCurseFabric.screen_effect.TransformOverlay;
 import net.onixary.shapeShifterCurseFabric.status_effects.RegOtherStatusEffects;
 import net.onixary.shapeShifterCurseFabric.status_effects.RegTStatusEffect;
@@ -237,10 +240,12 @@ public class ShapeShifterCurseFabric implements ModInitializer {
 
         // 注册配方
         RecipeSerializerRegister.register();
+        RecipeUtils.register();
 
         ManaRegistries.register();
         DefaultAccessory.init();
         AuthServer.init();
+        RegMenuType.init();
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             // 获取主世界作为默认世界
@@ -259,7 +264,7 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             ModPacketsS2CServer.updateDynamicForm(player);
             PlayerFormComponent component = PlayerFormComponent.COMPONENT.get(player);
             if (RegPlayerForms.getPlayerForm(component.nowFormID) == null) {
-                FormUtils._loadForm(player, component.getFallbackForm());
+                FormUtils._loadForm(player, component.getFallbackForm(), true);
             }
         }));
         initLocalDataStorage();
@@ -309,6 +314,10 @@ public class ShapeShifterCurseFabric implements ModInitializer {
             }
             return ActionResult.PASS;
         });
+
+        RegBuiltinAlterRecipe.init();
+
+
 
         /// Debug instinct: unregister this to see instinct debug info
         //InstinctDebugHUD.register();

@@ -8,6 +8,9 @@ import net.minecraft.util.Pair;
 
 public class AdditionalEntityActions {
     public static void register() {
+        FamiliarFoxActions.register();
+        PerkActions.registerActions();
+        registerBIAction(DirectedParticlesAction.getFactory());
         registerAction(AddInstinctAction.getFactory());
         registerAction(SetFallingDistanceAction.createFactory());
         TransformAction.registerAction(AdditionalEntityActions::registerAction, AdditionalEntityActions::registerBIAction);
@@ -23,6 +26,7 @@ public class AdditionalEntityActions {
         ItemStorePower.registerAction(AdditionalEntityActions::registerAction, AdditionalEntityActions::registerBIAction);
         ItemCooldownCA.registerAction(AdditionalEntityActions::registerAction, AdditionalEntityActions::registerBIAction);
         registerAction(TANAddThirstAction.createFactory());
+        SomeRandomACS.registerAction(AdditionalEntityActions::registerAction, AdditionalEntityActions::registerBIAction);
     }
 
     public static ActionFactory<Entity> registerAction(ActionFactory<Entity> actionFactory) {

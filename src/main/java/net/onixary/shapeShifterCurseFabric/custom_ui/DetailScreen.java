@@ -28,7 +28,7 @@ public class DetailScreen extends Screen implements WidgetEXUtils.IWidgetEX {
         int TextSizeX = width - TextX * 2;
         int TextSizeY = height - 60;
         int TextDefaultColor = 0xFFFFFF;
-        ScaleScrollTextWidget DetailTextWidget = (ScaleScrollTextWidget) new ScaleScrollTextWidget(TextX, TextY, TextSizeX, TextSizeY / 9, 1.0f, DetailText, textRenderer).setTextColor(TextDefaultColor);
+        ScaleScrollTextWidget DetailTextWidget = (ScaleScrollTextWidget) new ScaleScrollTextWidget(TextX, TextY, TextSizeX, TextSizeY, 1.0f, DetailText, textRenderer).setTextColor(TextDefaultColor);
         DetailTextWidget.setEnableScrollableIconRender(true);
         this.addWidget(DetailTextWidget);
         this.addDrawableChild(DetailTextWidget);
@@ -90,5 +90,16 @@ public class DetailScreen extends Screen implements WidgetEXUtils.IWidgetEX {
     public boolean mouseScrolled(double mouseX, double mouseY, double mouseZ) {
         this.onScrollWidget(mouseX, mouseY, mouseZ);
         return super.mouseScrolled(mouseX, mouseY, mouseZ);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (super.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        } else if (this.client.options.inventoryKey.matchesKey(keyCode, scanCode)) {
+            this.close();
+            return true;
+        }
+        return false;
     }
 }

@@ -17,9 +17,26 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.*;
 
 import java.util.List;
+import net.onixary.shapeShifterCurseFabric.additional_power.ActionOnCombatHitPower;
 
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityAttackMixin {
+
+    @WrapOperation(method = "attack", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/entity/Entity;damage(Lnet/minecraft/entity/damage/DamageSource;F)Z"))
+    private boolean ssc$successfulPrimaryHit(Entity target, DamageSource source, float amount,
+                                             Operation<Boolean> original, @Local(ordinal = 2) boolean critical) {
+        float before = ActionOnCombatHitPower.health(target);
+        boolean success = original.call(target, source, amount + ActionOnCombatHitPower.meleeBonus((PlayerEntity) (Object) this, target, critical));
+        if (success) {
+            float dealt = before - ActionOnCombatHitPower.health(target);
+            PlayerEntity player = (PlayerEntity) (Object) this;
+            ActionOnCombatHitPower.fire(player, target, "melee", dealt);
+            if (critical) ActionOnCombatHitPower.fire(player, target, "critical", dealt);
+            else ActionOnCombatHitPower.fire(player, target, "non_critical_melee", dealt);
+        }
+        return success;
+    }
 
     /**
      * This mixin is used to force the sweeping attack effect when the AlwaysSweepingPower is active.
@@ -56,18 +73,10 @@ public abstract class PlayerEntityAttackMixin {
             power.executeAction();
         }
         if (!fallingAttackPowers.isEmpty()) {
-            float minFall = 1.0f;
-            float maxFall = 2.0f;
-            float minMultiplier = 1.0f;
-            float maxMultiplier = 2.0f;
-            float fallMultiplier;
-            if (player.fallDistance <= minFall) {
-                fallMultiplier = minMultiplier;
-            } else if (player.fallDistance >= maxFall) {
-                fallMultiplier = maxMultiplier;
-            } else {
-                float progress = (player.fallDistance - minFall) / (maxFall - minFall);
-                fallMultiplier = minMultiplier + (maxMultiplier - minMultiplier) * progress;
+            // Multiple instances still apply the bonus once, using the strongest active power.
+            float fallMultiplier = 1.0f;
+            for (EnhancedFallingAttackPower power : fallingAttackPowers) {
+                fallMultiplier = Math.max(fallMultiplier, power.getFallMultiplier(player.fallDistance));
             }
             finalMultiplier *= fallMultiplier;
             for (EnhancedFallingAttackPower power : fallingAttackPowers) {

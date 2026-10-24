@@ -1,0 +1,357 @@
+package net.onixary.shapeShifterCurseFabric.recipes.altar;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
+import net.minecraft.advancement.Advancement;
+import net.minecraft.advancement.AdvancementProgress;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.RecipeSerializer;
+import net.minecraft.recipe.ShapedRecipe;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.JsonHelper;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.world.World;
+import net.onixary.shapeShifterCurseFabric.recipes.RecipeSerializerRegister;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Map;
+import java.util.Set;
+
+public class AltarShapedRecipe extends AltarRecipe {
+    public final int recipeTime;
+
+    public final int width;
+    public final int height;
+
+    public final DefaultedList<Ingredient> input;
+    public final @Nullable Ingredient catalyst;
+    public final ItemStack output;
+    public final Identifier id;
+    public final int fuelCostPerTick;
+
+    public final @Nullable Identifier requireAdvancement;
+
+    public AltarShapedRecipe(Identifier id, int width, int height, DefaultedList<Ingredient> input, Ingredient catalyst, ItemStack output, int recipeTime, int fuelCostPerTick, Identifier requireAdvancement) {
+        this.id = id;
+        this.width = width;
+        this.height = height;
+        this.input = input;
+        this.output = output;
+        this.recipeTime = recipeTime;
+        this.catalyst = catalyst;
+        this.fuelCostPerTick = fuelCostPerTick;
+        this.requireAdvancement = requireAdvancement;
+    }
+
+    @Override
+    public DefaultedList<Ingredient> getIngredients() {
+        return input;
+    }
+
+    @Override
+    public int recipeTime() {
+        return recipeTime;
+    }
+
+    @Override
+    public boolean canCraft(PlayerEntity player) {
+        if (requireAdvancement == null) {
+            return true;
+        }
+        if (player instanceof ServerPlayerEntity playerEntity) {
+            MinecraftServer server = playerEntity.getServer();
+            if (server == null) {
+                return false;
+            }
+            Advancement advancement = server.getAdvancementLoader().get(requireAdvancement);
+            if (advancement == null) {
+                return false;
+            }
+            AdvancementProgress advancementProgress = playerEntity.getAdvancementTracker().getProgress(advancement);
+            if (advancementProgress == null) {
+                return false;
+            }
+            return advancementProgress.isDone();
+        }
+        return false;
+    }
+
+    private boolean matchesPattern(SidedInventory inv, int offsetX, int offsetY, boolean flipped) {
+        for(int i = 0; i < 3; ++i) {
+            for(int j = 0; j < 3; ++j) {
+                int k = i - offsetX;
+                int l = j - offsetY;
+                Ingredient ingredient = Ingredient.EMPTY;
+                if (k >= 0 && l >= 0 && k < this.width && l < this.height) {
+                    if (flipped) {
+                        ingredient = (Ingredient)this.input.get(this.width - k - 1 + l * this.width);
+                    } else {
+                        ingredient = (Ingredient)this.input.get(k + l * this.width);
+                    }
+                }
+
+                if (!ingredient.test(inv.getStack(i + j * 3))) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean matches(SidedInventory recipeInputInventory, World world) {
+        if (this.catalyst != null) {
+            ItemStack itemStack = recipeInputInventory.getStack(9);
+            if (!this.catalyst.test(itemStack)) {
+                return false;
+            }
+        }
+
+        for(int i = 0; i <= 3 - this.width; ++i) {
+            for(int j = 0; j <= 3 - this.height; ++j) {
+                if (this.matchesPattern(recipeInputInventory, i, j, true)) {
+                    return true;
+                }
+
+                if (this.matchesPattern(recipeInputInventory, i, j, false)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int fuelUsage() {
+        return fuelCostPerTick;
+    }
+
+    @Override
+    public ItemStack craft(SidedInventory inventory, DynamicRegistryManager registryManager) {
+        return this.getOutput(registryManager).copy();
+    }
+
+    @Override
+    public boolean fits(int width, int height) {
+        return width >= this.width && height >= this.height;
+    }
+
+    @Override
+    public ItemStack getOutput(DynamicRegistryManager registryManager) {
+        return this.output;
+    }
+
+    @Override
+    public Identifier getId() {
+        return this.id;
+    }
+
+    @Override
+    public RecipeSerializer<?> getSerializer() {
+        return RecipeSerializerRegister.ALTAR_SHAPED_RECIPE;
+    }
+
+    public static String[] getPattern(JsonArray json) {
+        String[] strings = new String[json.size()];
+        if (strings.length > 3) {
+            throw new JsonSyntaxException("Invalid pattern: too many rows, 3 is maximum");
+        } else if (strings.length == 0) {
+            throw new JsonSyntaxException("Invalid pattern: empty pattern not allowed");
+        } else {
+            for(int i = 0; i < strings.length; ++i) {
+                String string = JsonHelper.asString(json.get(i), "pattern[" + i + "]");
+                if (string.length() > 3) {
+                    throw new JsonSyntaxException("Invalid pattern: too many columns, 3 is maximum");
+                }
+
+                if (i > 0 && strings[0].length() != string.length()) {
+                    throw new JsonSyntaxException("Invalid pattern: each row must be the same width");
+                }
+
+                strings[i] = string;
+            }
+
+            return strings;
+        }
+    }
+
+    public static Map<String, Ingredient> readSymbols(JsonObject json) {
+        Map<String, Ingredient> map = Maps.newHashMap();
+
+        for(Map.Entry<String, JsonElement> entry : json.entrySet()) {
+            if (((String)entry.getKey()).length() != 1) {
+                throw new JsonSyntaxException("Invalid key entry: '" + (String)entry.getKey() + "' is an invalid symbol (must be 1 character only).");
+            }
+
+            if (" ".equals(entry.getKey())) {
+                throw new JsonSyntaxException("Invalid key entry: ' ' is a reserved symbol.");
+            }
+
+            map.put((String)entry.getKey(), Ingredient.fromJson((JsonElement)entry.getValue(), false));
+        }
+
+        map.put(" ", Ingredient.EMPTY);
+        return map;
+    }
+
+    public static int findFirstSymbol(String line) {
+        int i;
+        for(i = 0; i < line.length() && line.charAt(i) == ' '; ++i) {
+        }
+
+        return i;
+    }
+
+    public static int findLastSymbol(String pattern) {
+        int i;
+        for(i = pattern.length() - 1; i >= 0 && pattern.charAt(i) == ' '; --i) {
+        }
+
+        return i;
+    }
+
+    public static String[] removePadding(String... pattern) {
+        int i = Integer.MAX_VALUE;
+        int j = 0;
+        int k = 0;
+        int l = 0;
+        for(int m = 0; m < pattern.length; ++m) {
+            String string = pattern[m];
+            i = Math.min(i, findFirstSymbol(string));
+            int n = findLastSymbol(string);
+            j = Math.max(j, n);
+            if (n < 0) {
+                if (k == m) {
+                    ++k;
+                }
+                ++l;
+            } else {
+                l = 0;
+            }
+        }
+        if (pattern.length == l) {
+            return new String[0];
+        } else {
+            String[] strings = new String[pattern.length - l - k];
+            for(int o = 0; o < strings.length; ++o) {
+                strings[o] = pattern[o + k].substring(i, j + 1);
+            }
+            return strings;
+        }
+    }
+
+    public static DefaultedList<Ingredient> createPatternMatrix(String[] pattern, Map<String, Ingredient> symbols, int width, int height) {
+        DefaultedList<Ingredient> defaultedList = DefaultedList.ofSize(width * height, Ingredient.EMPTY);
+        Set<String> set = Sets.newHashSet(symbols.keySet());
+        set.remove(" ");
+
+        for(int i = 0; i < pattern.length; ++i) {
+            for(int j = 0; j < pattern[i].length(); ++j) {
+                String string = pattern[i].substring(j, j + 1);
+                Ingredient ingredient = (Ingredient)symbols.get(string);
+                if (ingredient == null) {
+                    throw new JsonSyntaxException("Pattern references symbol '" + string + "' but it's not defined in the key");
+                }
+
+                set.remove(string);
+                defaultedList.set(j + width * i, ingredient);
+            }
+        }
+
+        if (!set.isEmpty()) {
+            throw new JsonSyntaxException("Key defines symbols that aren't used in pattern: " + set);
+        } else {
+            return defaultedList;
+        }
+    }
+
+    public static class Serializer implements RecipeSerializer<AltarShapedRecipe> {
+        public AltarShapedRecipe read(Identifier identifier, JsonObject jsonObject) {
+            int time = JsonHelper.getInt(jsonObject, "time", 200);
+            int moondustCost = JsonHelper.getInt(jsonObject, "moondust_cost", -1);
+            if (time <= 0 || moondustCost < -1 || moondustCost > Integer.MAX_VALUE / 800) {
+                throw new com.google.gson.JsonSyntaxException("Invalid altar time or moondust_cost");
+            }
+            Ingredient catalyst = null;
+            if (jsonObject.has("catalyst")) {
+                catalyst = Ingredient.fromJson(jsonObject.get("catalyst"), true);
+            }
+            Identifier requireAdvancement = null;
+            if (jsonObject.has("require_advancement")) {
+                requireAdvancement = new Identifier(JsonHelper.getString(jsonObject, "require_advancement"));
+            }
+            int fuelCost = JsonHelper.getInt(jsonObject, "fuel_cost", 1);
+            if (fuelCost < 0 || (long) fuelCost * time > Integer.MAX_VALUE) {
+                throw new com.google.gson.JsonSyntaxException("Invalid altar fuel_cost");
+            }
+            Map<String, Ingredient> map = readSymbols(JsonHelper.getObject(jsonObject, "key"));
+            String[] strings = removePadding(getPattern(JsonHelper.getArray(jsonObject, "pattern")));
+            int i = strings[0].length();
+            int j = strings.length;
+            DefaultedList<Ingredient> defaultedList = createPatternMatrix(strings, map, i, j);
+            ItemStack itemStack = ShapedRecipe.outputFromJson(JsonHelper.getObject(jsonObject, "result"));
+            AltarShapedRecipe recipe = new AltarShapedRecipe(identifier, i, j, defaultedList, catalyst, itemStack, time, fuelCost, requireAdvancement);
+            recipe.totalFuelCost = moondustCost < 0 ? -1 : moondustCost * 800;
+            return recipe;
+        }
+
+        public AltarShapedRecipe read(Identifier identifier, PacketByteBuf packetByteBuf) {
+            Ingredient catalyst = null;
+            if (packetByteBuf.readBoolean()) {
+                catalyst = Ingredient.fromPacket(packetByteBuf);
+            }
+            Identifier requireAdvancement = null;
+            if (packetByteBuf.readBoolean()) {
+                requireAdvancement = packetByteBuf.readIdentifier();
+            }
+            int i = packetByteBuf.readVarInt();
+            int j = packetByteBuf.readVarInt();
+            DefaultedList<Ingredient> defaultedList = DefaultedList.ofSize(i * j, Ingredient.EMPTY);
+            for(int k = 0; k < defaultedList.size(); ++k) {
+                defaultedList.set(k, Ingredient.fromPacket(packetByteBuf));
+            }
+            ItemStack itemStack = packetByteBuf.readItemStack();
+            int time = packetByteBuf.readVarInt();
+            int fuelCost = packetByteBuf.readVarInt();
+            AltarShapedRecipe recipe = new AltarShapedRecipe(identifier, i, j, defaultedList, catalyst, itemStack, time, fuelCost, requireAdvancement);
+            recipe.totalFuelCost = packetByteBuf.readVarInt();
+            return recipe;
+        }
+
+        public void write(PacketByteBuf packetByteBuf, AltarShapedRecipe altarRecipe) {
+            if (altarRecipe.catalyst != null) {
+                packetByteBuf.writeBoolean(true);
+                altarRecipe.catalyst.write(packetByteBuf);
+            } else {
+                packetByteBuf.writeBoolean(false);
+            }
+            if (altarRecipe.requireAdvancement != null) {
+                packetByteBuf.writeBoolean(true);
+                packetByteBuf.writeIdentifier(altarRecipe.requireAdvancement);
+            } else {
+                packetByteBuf.writeBoolean(false);
+            }
+            packetByteBuf.writeVarInt(altarRecipe.width);
+            packetByteBuf.writeVarInt(altarRecipe.height);
+            for(Ingredient ingredient : altarRecipe.input) {
+                ingredient.write(packetByteBuf);
+            }
+            packetByteBuf.writeItemStack(altarRecipe.output);
+            packetByteBuf.writeVarInt(altarRecipe.recipeTime);
+            packetByteBuf.writeVarInt(altarRecipe.fuelCostPerTick);
+            packetByteBuf.writeVarInt(altarRecipe.totalFuelCost);
+        }
+    }
+}

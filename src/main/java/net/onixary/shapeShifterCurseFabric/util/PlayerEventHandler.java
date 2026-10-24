@@ -50,7 +50,7 @@ public class PlayerEventHandler {
                     if (form instanceof NeedCheckUsableForm ncuf && !ncuf.IsPlayerCanUse(player)) {
                         FormUtils.applyFallback(player);
                     } else {
-                        FormUtils._loadForm(player, form);
+                        FormUtils._loadForm(player, form, false);
                     }
                 } catch (Exception e) {
                     ShapeShifterCurseFabric.LOGGER.error("Error loading player form: ", e);
@@ -115,9 +115,14 @@ public class PlayerEventHandler {
             if (newPlayer.getWorld().isClient()) return;
 
             copyTransformativeEffect(oldPlayer, newPlayer);
-            copyFormAndAbility(oldPlayer, newPlayer);
+            copyFormData(oldPlayer, newPlayer);
             //PlayerTeamHandler.updatePlayerTeam(newPlayer);
         });
+
+        // Origins的架构问题 等之后移除Origins后问题自然解决(因为快到这一步了 所以先这样吧 最好的打补丁方法是把那些修改挂到一个技术性powerSource上 但是既然都要移除Origins 先凑活用吧)
+        // ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+        //     FormUtils._loadForm(newPlayer, FormUtils.getPlayerForm(newPlayer), true);
+        // });
 
         //load event
         ServerWorldEvents.LOAD.register((server, world) -> {
@@ -126,7 +131,7 @@ public class PlayerEventHandler {
                 if (form instanceof NeedCheckUsableForm ncuf && !ncuf.IsPlayerCanUse(player)) {
                     FormUtils.applyFallback(player);
                 } else {
-                    FormUtils._loadForm(player, form);
+                    FormUtils._loadForm(player, form, false);
                 }
 
                 /* 重构后不需要了 仅用于参考旧实现逻辑
@@ -150,7 +155,8 @@ public class PlayerEventHandler {
                 // CursedMoon.resetMoonEffect(player);
 
                 // Set doDaylightCycle to true forced
-                server.getGameRules().get(GameRules.DO_DAYLIGHT_CYCLE).set(true, server);
+                // 不应该这么操作 Mod应该没有这个权限去强行修改世界配置 这剥夺了玩家的选择性
+                // server.getGameRules().get(GameRules.DO_DAYLIGHT_CYCLE).set(true, server);
                 MobTeamManager.registerTeam(world);
             }
         });
@@ -209,13 +215,12 @@ public class PlayerEventHandler {
         newPlayer.addStatusEffect(transformativeStatusInstance);
     }
 
-    private static void copyFormAndAbility(ServerPlayerEntity oldPlayer, ServerPlayerEntity newPlayer) {
+    private static void copyFormData(ServerPlayerEntity oldPlayer, ServerPlayerEntity newPlayer) {
         PlayerFormComponent oldComponent = PlayerFormComponent.COMPONENT.get(oldPlayer);
         PlayerFormComponent newComponent = PlayerFormComponent.COMPONENT.get(newPlayer);
         NbtCompound nbt = new NbtCompound();
         oldComponent.writeToNbt(nbt);
         newComponent.readFromNbt(nbt);
-        FormUtils._loadForm(newPlayer, newComponent.nowForm);
     }
 
     private static void handleEntityTeam(ServerWorld world){

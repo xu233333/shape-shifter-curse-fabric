@@ -5,6 +5,9 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "net.onixary.shapeShifterCurseFabric.mixin.plugin.MixinConfigPlugin",
   "mixins": [
+    "FrostMovementMixin",
+    "FrostFallDamageMixin",
+    "PerkShieldBlockMixin",
     "BreathingUnderWaterMixin",
     "CancelEntityStepSoundMixin",
     "CustomEdibleItemMixin",
@@ -76,7 +79,12 @@
     "mob.OcelotEntityMixin",
     "SU_ServerCommandSourceMixin",
     "SU_ServerPlayerEntityMixin",
-    "SU_MinecraftServerMixin"
+    "SU_MinecraftServerMixin",
+    "integration.LodeStoneIntegrationMixin",
+    "RecipeManagerMixin",
+    "ServerPlayNetworkHandlerMixin",
+    "WitherIntervalMixin",
+    "CompoundBowMixin"
   ],
   "client": [
     "AdjustItemHoldFeatureRendererMixin",
@@ -88,6 +96,7 @@
     "EntityRenderDispatcherMixin",
     "FeralPlayerEntityRendererMixin",
     "GameRendererMixin",
+    "HeartTypeMixin",
     "IEntityRenderDispatcherAccessor",
     "InGameHudMixin",
     "InventoryScreenMixin",
@@ -115,7 +124,10 @@
     "extra_logic.MorphScaleRenderRegisterA",
     "extra_logic.MorphScaleRenderRegisterB",
     "SU_ClientCommandSourceMixin",
-    "SU_ClientPlayerEntityMixin"
+    "SU_ClientPlayerEntityMixin",
+    "PlayerListHudMixin",
+    "integration.CarryOnIntegrationMixin",
+    "MouseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

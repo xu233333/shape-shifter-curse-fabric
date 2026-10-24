@@ -10,6 +10,7 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.util.Identifier;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
+import net.onixary.shapeShifterCurseFabric.perk.RegPerks;
 import net.onixary.shapeShifterCurseFabric.player_form.IForm;
 import net.onixary.shapeShifterCurseFabric.player_form.RegPlayerForms;
 import net.onixary.shapeShifterCurseFabric.util.InitialFormUtils;
@@ -41,6 +42,14 @@ public class PlayerFormComponent implements AutoSyncedComponent {
     public float instinctRate = 0.0f;
     public HashMap<Identifier, InstinctUtils.InstinctEffect> instinctEffects = new HashMap<>();
 
+    public Identifier nowPerkTree = RegPerks.EMPTY_PERK_TREE;
+    public HashMap<Identifier, List<Identifier>> formPerkMap = new HashMap<>();
+    // TODO 之后改成玩家全局的吧 这样写感觉不太行
+    public final Set<Identifier> freePerkForms = new HashSet<>();
+
+    // 仅用于(客户端)和(服务器端判断是否需要同步)
+    public boolean isFlying;
+
     // 临时变量
     public PlayerEntity player = null;
 
@@ -49,6 +58,7 @@ public class PlayerFormComponent implements AutoSyncedComponent {
         this.nowForm = InitialFormUtils.getInitialForm(player);
         this.nowFormID = nowForm.getFormID();
         this.fallbackFormID = nowForm.getFormID();
+        this.isFlying = false;
     }
 
     public @NotNull IForm getFallbackForm() {
@@ -76,6 +86,11 @@ public class PlayerFormComponent implements AutoSyncedComponent {
 
     @Override
     public void readFromNbt(NbtCompound tag) {
+        freePerkForms.clear();
+        for (NbtElement entry : tag.getList("free_perk_forms", NbtElement.STRING_TYPE)) {
+            Identifier form = Identifier.tryParse(entry.asString());
+            if (form != null) freePerkForms.add(form);
+        }
         if (tag.contains("no_form_id") && tag.getBoolean("no_form_id")) {
             nowFormID = null;
             nowForm = RegPlayerForms.ORIGINAL_BEFORE_ENABLE;
@@ -154,13 +169,44 @@ public class PlayerFormComponent implements AutoSyncedComponent {
                 instinctEffects.put(Identifier.tryParse(key), InstinctUtils.InstinctEffect.fromNBT(effects.getCompound(key)));
             }
         }
+        if (tag.contains("now_perk_tree")) {
+            nowPerkTree = Identifier.tryParse(tag.getString("now_perk_tree"));
+        }
+        if (tag.contains("perks")) {
+            formPerkMap.clear();
+            NbtCompound perks = tag.getCompound("perks");
+            for (String key : perks.getKeys()) {
+                Identifier treeID = Identifier.tryParse(key);
+                if (treeID != null) {
+                    List<Identifier> perkList = new ArrayList<>();
+                    NbtList perkListNBT = perks.getList(key, NbtElement.STRING_TYPE);
+                    for (NbtElement element : perkListNBT) {
+                        Identifier perkID = Identifier.tryParse(element.asString());
+                        if (perkID != null && !perkList.contains(perkID)) {
+                            perkList.add(perkID);
+                        }
+                    }
+                    formPerkMap.put(treeID, perkList);
+                }
+            }
+        }
         if (player.getWorld().isClient) {
-            InstinctUtils.fromInstinctUpdate(instinctValue, instinctRate);
+            if (player.isMainPlayer()) {
+                InstinctUtils.fromInstinctUpdate(instinctValue, instinctRate);
+            }
+            if (tag.contains("isFlying")) {
+                this.isFlying = tag.getBoolean("isFlying");
+            }
+        } else {
+            this.isFlying = player.getAbilities().flying;
         }
     }
 
     @Override
     public void writeToNbt(NbtCompound tag) {
+        NbtList freeForms = new NbtList();
+        for (Identifier form : freePerkForms) freeForms.add(net.minecraft.nbt.NbtString.of(form.toString()));
+        tag.put("free_perk_forms", freeForms);
         if (nowFormID != null) {
             tag.putString("nowFormID", nowFormID.toString());
         } else {
@@ -195,9 +241,24 @@ public class PlayerFormComponent implements AutoSyncedComponent {
             effects.put(entry.getKey().toString(), effect);
         }
         tag.put("instinctEffects", effects);
+        tag.putString("now_perk_tree", nowPerkTree.toString());
+        NbtCompound perks = new NbtCompound();
+        for (Map.Entry<Identifier, List<Identifier>> perkEntry : formPerkMap.entrySet()) {
+            NbtList perkTree = new NbtList();
+            for (Identifier perkID : perkEntry.getValue()) {
+                perkTree.add(NbtString.of(perkID.toString()));
+            }
+            if (perkTree.isEmpty()) {
+                continue;
+            }
+            perks.put(perkEntry.getKey().toString(), perkTree);
+        }
+        tag.put("perks", perks);
+        tag.putBoolean("isFlying", this.player.getAbilities() != null && this.player.getAbilities().flying);
     }
 
     public void clear() {
+        freePerkForms.clear();
         this.nowForm = InitialFormUtils.getInitialForm(this.player);
         this.nowFormID = nowForm.getFormID();
         formHistory.clear();
@@ -224,5 +285,13 @@ public class PlayerFormComponent implements AutoSyncedComponent {
     public void setForm(Identifier formID) {
         nowForm = FormUtils.parseForm(formID, RegPlayerForms.ORIGINAL_BEFORE_ENABLE);
         nowFormID = formID;
+    }
+
+    public void checkFlyUpdate() {
+        boolean isFlying = player.getAbilities().flying;
+        if (isFlying != this.isFlying) {
+            this.isFlying = isFlying;
+            sync();
+        }
     }
 }

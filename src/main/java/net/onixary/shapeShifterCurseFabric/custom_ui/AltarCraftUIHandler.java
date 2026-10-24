@@ -1,0 +1,177 @@
+package net.onixary.shapeShifterCurseFabric.custom_ui;
+
+import net.minecraft.block.Blocks;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.recipe.Recipe;
+import net.minecraft.recipe.RecipeMatcher;
+import net.minecraft.recipe.book.RecipeBookCategory;
+import net.minecraft.screen.*;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.World;
+import net.onixary.shapeShifterCurseFabric.blocks.block_entity.AltarBlockEntity;
+import net.onixary.shapeShifterCurseFabric.custom_ui.ui_part.AltarOutputSlot;
+
+public class AltarCraftUIHandler extends AbstractRecipeScreenHandler<SidedInventory> {
+    public final PlayerInventory playerInventory;
+    public final Inventory altarBlockEntity;
+    public final ScreenHandlerContext context;
+    public final PlayerEntity player;
+    public final World world;
+    public final PropertyDelegate propertyDelegate;
+
+    public static AltarCraftUIHandler createMenu(int i, PlayerInventory inventory) {
+        return new AltarCraftUIHandler(RegMenuType.AltarCraftUI, i, inventory, new SimpleInventory(12), ScreenHandlerContext.EMPTY, new ArrayPropertyDelegate(4));
+    }
+
+    public AltarCraftUIHandler(ScreenHandlerType<?> screenHandlerType, int syncId, PlayerInventory playerInventory, Inventory altarBlockEntity, ScreenHandlerContext context, PropertyDelegate propertyDelegate) {
+        super(screenHandlerType, syncId);
+        this.playerInventory = playerInventory;
+        this.altarBlockEntity = altarBlockEntity;
+        this.context = context;
+        this.player = playerInventory.player;
+        this.world = playerInventory.player.getWorld();
+        this.propertyDelegate = propertyDelegate;
+
+        for(int i = 0; i < 3; ++i) {
+            for(int j = 0; j < 3; ++j) {
+                this.addSlot(new Slot(this.altarBlockEntity, j + i * 3, 26 + j * 18, 17 + i * 18));
+            }
+        }
+
+        this.addSlot(new Slot(this.altarBlockEntity, 9, 97, 22));
+        this.addSlot(new Slot(this.altarBlockEntity, 10, 84, 53));
+        this.addSlot(new AltarOutputSlot(this.altarBlockEntity, 11, 134, 35));
+
+        for(int i = 0; i < 3; ++i) {
+            for(int j = 0; j < 9; ++j) {
+                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 7 + j * 18, 83 + i * 18));
+            }
+        }
+
+        for(int i = 0; i < 9; ++i) {
+            this.addSlot(new Slot(playerInventory, i, 7 + i * 18, 141));
+        }
+
+        this.addProperties(propertyDelegate);
+    }
+
+    @Override
+    public void populateRecipeFinder(RecipeMatcher finder) {
+        if (this.altarBlockEntity instanceof AltarBlockEntity realAltar) {
+            realAltar.provideRecipeInputs(finder);
+        }
+    }
+
+    @Override
+    public void clearCraftingSlots() {
+        for (int i = 0; i < this.altarBlockEntity.size(); ++i) {
+            if (i == 9) {
+                continue;
+            }
+            this.getSlot(i).setStackNoCallbacks(ItemStack.EMPTY);
+        }
+    }
+
+    @Override
+    public boolean matches(Recipe<? super SidedInventory> recipe) {
+        if (this.altarBlockEntity instanceof AltarBlockEntity realAltar) {
+            return recipe.matches(realAltar, world);
+        }
+        return false;
+    }
+
+    @Override
+    public int getCraftingResultSlotIndex() {
+        return 11;
+    }
+
+    @Override
+    public int getCraftingWidth() {
+        return 3;
+    }
+
+    @Override
+    public int getCraftingHeight() {
+        return 3;
+    }
+
+    @Override
+    public int getCraftingSlotCount() {
+        return 12;
+    }
+
+    @Override
+    public RecipeBookCategory getCategory() {
+        return RecipeBookCategory.CRAFTING;
+    }
+
+    @Override
+    public boolean canInsertIntoSlot(int index) {
+        return index != this.getCraftingResultSlotIndex();
+    }
+
+    @Override
+    public ItemStack quickMove(PlayerEntity player, int slotIndex) {
+        // 0~8 -> Input
+        // 9 -> Fuel
+        // 10 -> Output
+        // 11~37 -> Player Inventory
+        // 38~46 -> Player Hotbar
+        Slot slot = this.slots.get(slotIndex);
+        ItemStack slotItem = slot.hasStack() ? slot.getStack() : ItemStack.EMPTY;
+        ItemStack slotItemCopy = slotItem.copy();
+        if (slotIndex >= 0 && slotIndex < 12) {
+            if (!this.insertItem(slotItem, 12, 47, slotIndex == 10)) {
+                return ItemStack.EMPTY;
+            }
+            if (slotIndex == 0) {
+                slot.onQuickTransfer(slotItem, slotItemCopy);
+            }
+        }
+        else if (slotIndex >= 12 && slotIndex < 48) {
+            if (AltarBlockEntity.canFuel(slotItem)) {
+                if (!this.insertItem(slotItem, 10, 11, false)) {
+                    if (!this.insertItem(slotItem, 0, 10, false)) {
+                        return ItemStack.EMPTY;
+                    }
+                }
+            }
+            if (!this.insertItem(slotItem, 0, 10, false)) {
+                return ItemStack.EMPTY;
+            }
+        }
+        if (slotItem.isEmpty()) {
+            slot.setStack(ItemStack.EMPTY);
+        } else {
+            slot.markDirty();
+        }
+        if (slotItem.getCount() == slotItemCopy.getCount()) {
+            return ItemStack.EMPTY;
+        }
+        slot.onTakeItem(player, slotItem);
+
+        return ItemStack.EMPTY;
+    }
+
+    public int getNowProgress() {
+        return this.propertyDelegate.get(0);
+    }
+
+    public int getMaxProgress() {
+        return this.propertyDelegate.get(1);
+    }
+
+    public int getNowFuel() {
+        return (this.propertyDelegate.get(2) & 0xFFFF) | ((this.propertyDelegate.get(3) & 0xFFFF) << 16);
+    }
+
+    @Override
+    public boolean canUse(PlayerEntity player) {
+        return canUse(this.context, player, Blocks.CRAFTING_TABLE);
+    }
+}

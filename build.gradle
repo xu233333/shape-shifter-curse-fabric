@@ -20,7 +20,18 @@ base {
 }
 
 loom {
+    mods {
+        "shape-shifter-curse" { sourceSet sourceSets.main }
+        "ssc-altar-checks" { sourceSet sourceSets.test }
+    }
     runs {
+        altarCheck {
+            server()
+            source sourceSets.test
+            vmArg "-Dfabric-api.gametest"
+            vmArg "-Dfabric-api.gametest.report-file=${project.buildDir}/altar-checks.xml"
+            runDir "build/altar-check"
+        }
         client {
             programArgs([
                     "--username", "Dev",
@@ -275,6 +286,8 @@ dependencies {
     modImplementation "curse.maven:jei-238222:8622779"
 
     modImplementation 'xu_mod.FakeForgeAPI:FakeForgeAPI-1.0:1.0'
+    // 调用频率有点高 所以直接项目依赖吧
+    modImplementation "curse.maven:carry-on-274259:4882498"
 }
 
 processResources {
@@ -316,13 +329,35 @@ java {
 }
 
 
-jar {
-    from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}" }
+// 代码为 MIT，模型/贴图/动画等资源为 CC BY-NC 4.0（avali 子形态资源为 CC BY-SA 2.0，
+// 见 LICENSING.md / THIRD-PARTY-NOTICES.md），协议文件都要随产物分发
+def licenseFiles = [
+        "LICENSE.txt"              : "LICENSE_${project.archivesBaseName}.txt",
+        "LICENSE-CC-BY-NC-4.0.txt" : "LICENSE-CC-BY-NC-4.0_${project.archivesBaseName}.txt",
+        "LICENSING.md"             : "LICENSING_${project.archivesBaseName}.md",
+        "THIRD-PARTY-NOTICES.md"   : "THIRD-PARTY-NOTICES_${project.archivesBaseName}.md",
+]
+
+// 同时覆盖 dev 产物与 remap 后的产物（jar / sourcesJar / remapJar / remapSourcesJar）
+tasks.matching { it.name in ["jar", "sourcesJar", "remapJar", "remapSourcesJar"] }.configureEach {
+    licenseFiles.each { source, target ->
+        from(source) {
+            rename { target }
+        }
     }
 }
 
 // configure the maven publication
+tasks.register('checkAltarRecipes') {
+    dependsOn 'runAltarCheck'
+}
+
+tasks.register('checkTooltipWrapping', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'net.onixary.shapeShifterCurseFabric.client.ItemTooltipWrappingCheck'
+}
+
 publishing {
     publications {
         create("mavenJava", MavenPublication) {

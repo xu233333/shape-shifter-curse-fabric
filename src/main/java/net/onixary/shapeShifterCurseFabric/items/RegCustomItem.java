@@ -1,10 +1,14 @@
 package net.onixary.shapeShifterCurseFabric.items;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.fabricmc.fabric.api.object.builder.v1.client.model.FabricModelPredicateProviderRegistry;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.*;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionUtil;
+import net.minecraft.potion.Potions;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.sound.SoundEvents;
@@ -27,6 +31,9 @@ import static net.onixary.shapeShifterCurseFabric.blocks.RegCustomBlock.*;
 
 public class RegCustomItem {
     private RegCustomItem(){}
+
+    public static final Item GRAPHENE_BLADE = register("graphene_blade", new SwordItem(ToolMaterials.DIAMOND, 4, -2.4f, new Item.Settings().maxDamage(128)));
+    public static final Item COMPOUND_KINETIC_BOW = register("compound_kinetic_bow", new BowItem(new Item.Settings().maxDamage(768)));
 
     //public static final Item CURSED_BOOK_OF_SHAPE_SHIFTER = register("cursed_book_of_shape_shifter", new StartBook(new StartBook.Settings()));
     public static final Item BOOK_OF_SHAPE_SHIFTER = register("book_of_shape_shifter", new BookOfShapeShifter(new BookOfShapeShifter.Settings()));
@@ -54,7 +61,7 @@ public class RegCustomItem {
     public static final Item ECTOPLASM_RAG = register("ectoplasm_rag", new Item(new Item.Settings()));
     public static final ToolItem BOTTLED_SNOWFALL = register("bottled_snowfall", new BottledSnowfall(BottledSnowfallToolMaterial.INSTANCE, 1, 1, new Item.Settings()));
     public static final ToolItem DIAMOND_MINING_CLAW = register("diamond_mining_claw", new DiamondMiningClaw(DiamondMiningClawToolMaterial.INSTANCE, 1, -2.4f, new Item.Settings()));
-    public static final Item FIRE_CHARM_PAPER = register("fire_charm_paper", new Item(new Item.Settings()));
+    public static final Item FIRE_CHARM_PAPER = register("fire_charm_paper", new FireCharmPaper(new Item.Settings()));
     public static final Item AUXILIARY_SWORD = register("auxiliary_sword", new AuxiliarySword(AuxiliarySwordToolMaterial.INSTANCE, 1, -2.4f, new Item.Settings()));
     public static final ToolItem AUXILIARY_PICKAXE = register("auxiliary_pickaxe", new AuxiliaryPickaxe(AuxiliaryPickaxeToolMaterial.INSTANCE, 1, -2.8f, new Item.Settings()));
     public static final ToolItem AUXILIARY_AXE = register("auxiliary_axe", new AuxiliaryAxe(AuxiliaryAxeToolMaterial.INSTANCE, 1, -3.1f, new Item.Settings()));
@@ -73,6 +80,28 @@ public class RegCustomItem {
     public static final Item RESONANT_CORE = register("resonant_core", new ResonantCoreTrinket(new ResonantCoreTrinket.Settings()));
     public static final Item VENOM_SPINDLE = register("venom_spindle", new VenomSpindle(new VenomSpindle.Settings()));
 
+    public static final Item CHARM_OF_NIGHT_CRYSTAL_PLUS = register("charm_of_night_crystal_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item CHARM_OF_HOLLOW_FANG_PLUS = register("charm_of_hollow_fang_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item ATTACH_HOOK_PLUS = register("attach_hook_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item CHARM_OF_REVERSE_THERMOMETER_PLUS = register("charm_of_reverse_thermometer_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item FROST_PAWGLOVE_PLUS = register("frost_pawglove_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item VENOM_SPINDLE_PLUS = register("venom_spindle_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item COLLAR_OF_WHISKERS_PLUS = register("collar_of_whiskers_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item DIGESTION_FIBER_BALL_PLUS = register("digestion_fiber_ball_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item WITHERED_BANDAGE_PLUS = register("withered_bandage_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item FOUNTAIN_BELT_PLUS = register("fountain_belt_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item AMULET_BRACELET_PLUS = register("amulet_bracelet_plus", new FormTrinket(new Item.Settings().rarity(Rarity.RARE)));
+    public static final ToolItem BOTTLED_SNOWFALL_PLUS = register("bottled_snowfall_plus", new BottledSnowfall(BottledSnowfallToolMaterial.INSTANCE, 1, 1, new Item.Settings().rarity(Rarity.RARE)));
+    public static final Item EXPLOSIVE_CHARM_PAPER = register("explosive_charm_paper", new FireCharmPaper(new Item.Settings()));
+    public static final Item GLINT_PRISM = register("glint_prism", new Item(new Item.Settings()));
+    public static final Item JUNGLE_CATALYST_CORE = register("jungle_catalyst_core", new CatalystCoreItem(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
+    public static final Item WEB_CATALYST_CORE = register("web_catalyst_core", new CatalystCoreItem(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
+    public static final Item FROST_CATALYST_CORE = register("frost_catalyst_core", new CatalystCoreItem(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
+    public static final Item FOXFIRE_CATALYST_CORE = register("foxfire_catalyst_core", new CatalystCoreItem(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
+    public static final Item SURGE_CATALYST_CORE = register("surge_catalyst_core", new CatalystCoreItem(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
+    public static final Item DUNE_CATALYST_CORE = register("dune_catalyst_core", new CatalystCoreItem(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
+    public static final Item NIGHT_CATALYST_CORE = register("night_catalyst_core", new CatalystCoreItem(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
+
     public static final Item TRANSFORMATIVE_AXOLOTL_BUCKET = register("transformative_axolotl_bucket", new EntityBucketItem(ShapeShifterCurseFabric.T_AXOLOTL, Fluids.WATER, SoundEvents.ITEM_BUCKET_EMPTY_AXOLOTL, (new Item.Settings()).maxCount(1)));
     // 减少非蜘蛛玩家食用的中毒量，做到实在没东西吃的时候也能硬着头皮吃的感觉
     public static final Item SPIDER_FLUID_COCOON = register("spider_fluid_cocoon", new SpiderFluidCocoon(new SpiderFluidCocoon.Settings()));
@@ -84,8 +113,15 @@ public class RegCustomItem {
     // 用于成就图标的占位物品
     public static final Item ICON_CURSED_MOON = register("icon_cursed_moon", new Item(new Item.Settings()));
     // 蛛丝弹占位物品
-    public static final Item WEB_PROJECTILE = register("web_projectile", new Item(new Item.Settings()));
+    public static final Item WEB_PROJECTILE = register("web_projectile", new WebProjectileItem(new Item.Settings()));
     public static final Item SILK_DEW = register("silk_dew", new SilkDew(new Item.Settings()));
+
+    public static final Item RIPPLE_MIRROR = register("ripple_mirror", new RippleMirror(new Item.Settings()));
+
+    public static final Item HEALING_CHARM = register("healing_charm_paper", new PotionCharmItem(Potions.STRONG_HEALING));
+    public static final Item HARMING_CHARM = register("harming_charm_paper", new PotionCharmItem(Potions.STRONG_HARMING));
+    public static final Item POISON_CHARM = register("poison_charm_paper", new PotionCharmItem(Potions.STRONG_POISON));
+
 
     public static ItemStack buildPotion(Item PotionItem, Potion potion) {
         ItemStack potionStack = new ItemStack(PotionItem);
@@ -149,19 +185,48 @@ public class RegCustomItem {
                 entries.add(FOUNTAIN_BELT);
                 entries.add(RESONANT_CORE);
                 entries.add(VENOM_SPINDLE);
+                entries.add(CHARM_OF_NIGHT_CRYSTAL_PLUS);
+                entries.add(CHARM_OF_HOLLOW_FANG_PLUS);
+                entries.add(ATTACH_HOOK_PLUS);
+                entries.add(CHARM_OF_REVERSE_THERMOMETER_PLUS);
+                entries.add(FROST_PAWGLOVE_PLUS);
+                entries.add(VENOM_SPINDLE_PLUS);
+                entries.add(COLLAR_OF_WHISKERS_PLUS);
+                entries.add(DIGESTION_FIBER_BALL_PLUS);
+                entries.add(WITHERED_BANDAGE_PLUS);
+                entries.add(FOUNTAIN_BELT_PLUS);
+                entries.add(AMULET_BRACELET_PLUS);
+                entries.add(BOTTLED_SNOWFALL_PLUS);
+                entries.add(EXPLOSIVE_CHARM_PAPER);
+                entries.add(GLINT_PRISM);
+                entries.add(JUNGLE_CATALYST_CORE);
+                entries.add(WEB_CATALYST_CORE);
+                entries.add(FROST_CATALYST_CORE);
+                entries.add(FOXFIRE_CATALYST_CORE);
+                entries.add(SURGE_CATALYST_CORE);
+                entries.add(DUNE_CATALYST_CORE);
+                entries.add(NIGHT_CATALYST_CORE);
                 entries.add(CUSTOM_TRINKET);
                 entries.add(FIRE_CHARM_PAPER);
                 entries.add(TRANSFORMATIVE_AXOLOTL_BUCKET);
                 entries.add(SPIDER_FLUID_COCOON);
                 entries.add(AUXILIARY_SWORD);
+                entries.add(GRAPHENE_BLADE);
+                entries.add(COMPOUND_KINETIC_BOW);
                 entries.add(AUXILIARY_PICKAXE);
                 entries.add(AUXILIARY_AXE);
                 entries.add(SELECT_FORM_ITEM);
                 entries.add(SILK_DEW);
+                entries.add(RIPPLE_MIRROR);
+                entries.add(HEALING_CHARM);
+                entries.add(HARMING_CHARM);
+                entries.add(POISON_CHARM);
                 // 方块物品注册
                 entries.add(MOONDUST_CRYSTAL_GRIT);
                 entries.add(WEB_COMPOSTER);
                 entries.add(DEW_COVERED_COBWEB);
+                entries.add(ALTAR_BLOCK);
+                entries.add(FORM_ATTUNER_BLOCK);
                 entries.addAll(buildAllPotions(
                         RegCustomPotions.MOONDUST_POTION,
                         RegCustomPotions.BAT_FORM_POTION,
@@ -218,5 +283,15 @@ public class RegCustomItem {
             entries.add(NETHERITE_MORPHSCALE_ANKLET);
         });
          */
+    }
+
+    @Environment(EnvType.CLIENT)
+    public static void registerModelPredicates() {
+        FabricModelPredicateProviderRegistry.register(
+                COMPOUND_KINETIC_BOW, new Identifier("pull"), (stack, world, entity, seed) ->
+                        entity != null && entity.getActiveItem() == stack ? (stack.getMaxUseTime() - entity.getItemUseTimeLeft()) / 20.0f : 0.0f);
+        FabricModelPredicateProviderRegistry.register(
+                COMPOUND_KINETIC_BOW, new Identifier("pulling"), (stack, world, entity, seed) ->
+                        entity != null && entity.isUsingItem() && entity.getActiveItem() == stack ? 1.0f : 0.0f);
     }
 }

@@ -22,6 +22,7 @@ import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
+import net.onixary.shapeShifterCurseFabric.additional_power.WolfMinionPower;
 import net.onixary.shapeShifterCurseFabric.minion.IMinion;
 import net.onixary.shapeShifterCurseFabric.minion.IPlayerEntityMinion;
 import org.jetbrains.annotations.Nullable;
@@ -188,8 +189,8 @@ public class AnubisWolfMinionEntity extends WolfEntity implements IMinion<Anubis
     @Override
     public void tick() {
         if (!this.getWorld().isClient) {
-            if (!this.shouldExist()) {
-                this.setHealth(0.0f);  // 自动死亡
+            if (this.isAlive() && !this.shouldExist()) {
+                this.kill();  // 自动死亡
             }
             if (!this.hasStatusEffect(StatusEffects.WITHER)) {
                 this.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, -1, 0));
@@ -285,6 +286,8 @@ public class AnubisWolfMinionEntity extends WolfEntity implements IMinion<Anubis
 
     @Override
     public void onDeath(DamageSource source) {
+        // TODO 既然有这个需求 之后整个通用的API
+        WolfMinionPower.onDeath(this.getOwner());
         if (this.getMinionOwnerUUID() != null && this.getWorld().getPlayerByUuid(this.getMinionOwnerUUID()) instanceof IPlayerEntityMinion iPlayerEntityMinion) {
             iPlayerEntityMinion.shape_shifter_curse$removeMinion(this.getMinionTypeID(), this.getUuid());
         }

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -12,6 +13,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.additional_power.VirtualTotemPower;
+import net.onixary.shapeShifterCurseFabric.perk.IPerk;
+import net.onixary.shapeShifterCurseFabric.perk.PerkTree;
+import net.onixary.shapeShifterCurseFabric.perk.PerkUtils;
+import net.onixary.shapeShifterCurseFabric.perk.RegPerks;
 import net.onixary.shapeShifterCurseFabric.player_form.DynamicForm;
 import net.onixary.shapeShifterCurseFabric.player_form.IForm;
 import net.onixary.shapeShifterCurseFabric.player_form.RegPlayerForms;
@@ -19,13 +24,9 @@ import net.onixary.shapeShifterCurseFabric.util.Verify.KeySegment;
 import org.jetbrains.annotations.Nullable;
 import net.onixary.shapeShifterCurseFabric.util.PatronUtils;
 
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 
 import static net.onixary.shapeShifterCurseFabric.networking.ModPackets.UPDATE_POWER_ANIM_DATA_TO_CLIENT;
-
-import java.util.List;
-import java.util.Map;
 
 // 纯服务端类，所有send方法都只在这里调用
 // This is a pure server-side class, all send methods are called only here
@@ -204,7 +205,7 @@ public class ModPacketsS2CServer {
         }
     }
 
-    public static void updatePatronLevel(MinecraftServer server) {
+    public static void updateOldPatronLevel(MinecraftServer server) {
         HashMap<UUID, Integer> patronLevels = PatronUtils.PatronLevels;
         int PairCount = patronLevels.size();
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
@@ -214,13 +215,13 @@ public class ModPacketsS2CServer {
                 buf.writeUuid(entry.getKey());
                 buf.writeInt(entry.getValue());
             }
-            ServerPlayNetworking.send(player, ModPackets.UPDATE_PATRON_LEVEL, buf);
+            ServerPlayNetworking.send(player, ModPackets.OLD_UPDATE_PATRON_LEVEL, buf);
         }
     }
 
-    public static void OpenPatronFormSelectMenu(ServerPlayerEntity player) {
+    public static void OpenOldPatronFormSelectMenu(ServerPlayerEntity player) {
         PacketByteBuf buf = PacketByteBufs.create();
-        ServerPlayNetworking.send(player, ModPackets.OPEN_PATRON_FORM_SELECT_MENU, buf);
+        ServerPlayNetworking.send(player, ModPackets.OLD_OPEN_PATRON_FORM_SELECT_MENU, buf);
     }
 
     public static void OpenFormSelectMenu(ServerPlayerEntity player, PlayerEntity target) {
@@ -318,9 +319,10 @@ public class ModPacketsS2CServer {
         ServerPlayNetworking.send(player, ModPackets.MODIFY_FCD_DATA, buf);
     }
 
-    public static void requestPatronAuthFile(ServerPlayerEntity player) {
+    public static void requestPatronAuthFile(ServerPlayerEntity player, boolean forceReReadFile) {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeUuid(player.getUuid());
+        buf.writeBoolean(forceReReadFile);
         ServerPlayNetworking.send(player, ModPackets.REQUEST_PATRON_AUTH_FILE, buf);
     }
 
@@ -338,5 +340,53 @@ public class ModPacketsS2CServer {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(level);
         ServerPlayNetworking.send(player, ModPackets.SET_SUPER_USER_LEVEL, buf);
+    }
+
+    public static void sendPerkAvailability(ServerPlayerEntity player, boolean fullUpdate, HashMap<Identifier, Boolean> perkAvailability) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeBoolean(fullUpdate);
+        buf.writeInt(perkAvailability.size());
+        for (Map.Entry<Identifier, Boolean> entry : perkAvailability.entrySet()) {
+            buf.writeIdentifier(entry.getKey());
+            buf.writeBoolean(entry.getValue());
+        }
+        ServerPlayNetworking.send(player, ModPackets.SYNC_PERK_AVAILABILITY, buf);
+    }
+
+    public static void sendPerkAvailabilityFull(ServerPlayerEntity player) {
+        sendPerkAvailability(player, true, PerkUtils.getPlayerPerkAvailability(player));
+    }
+
+    public static void sendPerkData(ServerPlayerEntity player, boolean fullUpdate, IPerk... perks) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeBoolean(fullUpdate);
+        buf.writeInt(perks.length);
+        for (IPerk perk : perks) {
+            buf.writeIdentifier(perk.getID());
+            NbtCompound nbt = new NbtCompound();
+            perk.getCost().__writeToNBT(nbt);
+            buf.writeNbt(nbt);
+        }
+        ServerPlayNetworking.send(player, ModPackets.SYNC_PERK_DATA, buf);
+    }
+
+    public static void sendPerkDataFull(ServerPlayerEntity player) {
+        PerkTree perkTree = PerkUtils.getPlayerNowPerkTree(player);
+        if (perkTree == null) {
+            return;
+        }
+        List<Identifier> perks = perkTree.getAllPerks();
+        sendPerkData(player, true, perks.stream().map(RegPerks::getPerk).filter(Objects::nonNull).toArray(IPerk[]::new));
+    }
+
+    public static void sendOpenFormUpgradeMenu(ServerPlayerEntity player, int tier) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeInt(tier);
+        ServerPlayNetworking.send(player, ModPackets.OPEN_FORM_UPGRADE_MENU, buf);
+    }
+
+    public static void sendOpenSelectSubFormMenu(ServerPlayerEntity player) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        ServerPlayNetworking.send(player, ModPackets.OPEN_SELECT_SUB_FORM_MENU, buf);
     }
 }

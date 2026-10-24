@@ -59,17 +59,17 @@ public class ClientConfig implements ConfigData {
     @Comment("Enable Better Combat fix. Default: true")
     public boolean enableBetterCombatFix = true;  // 启用Better Combat Fix
 
-    @ConfigEntry.Category("Patron")
-    @Comment("Auto-download Patron authorization file. Default: true")
-    public boolean autoDownloadPatronAuthorizationFile = true;  // 自动下载赞助者授权文件
+    // @ConfigEntry.Category("Patron")
+    // @Comment("Auto-download Patron authorization file. Default: true")
+    // public boolean autoDownloadPatronAuthorizationFile = true;  // 自动下载赞助者授权文件
 
-    @ConfigEntry.Category("Patron")
-    @Comment("Custom player UUID (client-side only). Addresses mismatches between offline UUIDs and server-computed ones. Default: \"\" ")
-    public String customPlayerUUID = "";  // 仅供自动更新系统使用 实际使用哪个authFile由服务器决定
+    // @ConfigEntry.Category("Patron")
+    // @Comment("Custom player UUID (client-side only). Addresses mismatches between offline UUIDs and server-computed ones. Default: \"\" ")
+    // public String customPlayerUUID = "";  // 仅供自动更新系统使用 实际使用哪个authFile由服务器决定
 
-    @ConfigEntry.Category("Patron")
-    @Comment("Patron Authorization Base URL (without the <UUID>.auth suffix). Default: \"https://raw.githubusercontent.com/onixary/ssc_patron/main/auth/\"")
-    public String patronAuthorizationUrlPath = "https://raw.githubusercontent.com/onixary/ssc_patron/main/auth/";  // 赞助者授权文件URL路径
+    // @ConfigEntry.Category("Patron")
+    // @Comment("Patron Authorization Base URL (without the <UUID>.auth suffix). Default: \"https://raw.githubusercontent.com/onixary/ssc_patron/main/auth/\"")
+    // public String patronAuthorizationUrlPath = "https://raw.githubusercontent.com/onixary/ssc_patron/main/auth/";  // 赞助者授权文件URL路径
 
     // 开发用
     // @ConfigEntry.Category("InDevelopment")
@@ -109,4 +109,16 @@ public class ClientConfig implements ConfigData {
     @ConfigEntry.Category("UI")
     @Comment("Item Store Power Y Offset. Default: 1")
     public int itemStorePowerPosOffsetY = 1;  // itemStorePower 中间 Y 位置偏移量
+
+    @ConfigEntry.Category("UI")
+    @Comment("Magic GUI Middle Type (1-9). Default: 8")
+    public int magicGUIPosType = 8;
+
+    @ConfigEntry.Category("UI")
+    @Comment("Magic GUI X Offset. Default: -200")
+    public int magicGUIPosOffsetX = -200;
+
+    @ConfigEntry.Category("UI")
+    @Comment("Magic GUI Y Offset. Default: -35")
+    public int magicGUIPosOffsetY = -35;
 }

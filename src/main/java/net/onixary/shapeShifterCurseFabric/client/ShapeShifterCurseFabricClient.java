@@ -5,6 +5,7 @@ import io.github.apace100.apoli.component.PowerHolderComponent;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.MinecraftClient;
@@ -12,6 +13,7 @@ import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
@@ -22,26 +24,30 @@ import net.onixary.shapeShifterCurseFabric.additional_power.CustomEdiblePower;
 import net.onixary.shapeShifterCurseFabric.additional_power.ItemStorePower;
 import net.onixary.shapeShifterCurseFabric.additional_power.LevitatePower;
 import net.onixary.shapeShifterCurseFabric.blocks.RegCustomBlock;
+import net.onixary.shapeShifterCurseFabric.blocks.block_entity_renderer.FormAttunerBeamRenderer;
 import net.onixary.shapeShifterCurseFabric.cursed_moon.CursedMoonClient;
-import net.onixary.shapeShifterCurseFabric.custom_ui.BookOfShapeShifterScreenV2_P1;
-import net.onixary.shapeShifterCurseFabric.custom_ui.StartBookScreenV2;
+import net.onixary.shapeShifterCurseFabric.custom_ui.*;
 import net.onixary.shapeShifterCurseFabric.data.StaticParams;
 import net.onixary.shapeShifterCurseFabric.entity.RegCustomEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.axolotl.TAxolotlEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.bat.BatEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.ocelot.TOcelotEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.form_giving_custom_entity.spider.TSpiderEntityRenderer;
+import net.onixary.shapeShifterCurseFabric.items.RegCustomItem;
+import net.onixary.shapeShifterCurseFabric.magic.MagicGUIRender;
 import net.onixary.shapeShifterCurseFabric.mana.ManaRegistriesClient;
 import net.onixary.shapeShifterCurseFabric.mana.ManaUtils;
 import net.onixary.shapeShifterCurseFabric.minion.MinionRegisterClient;
 import net.onixary.shapeShifterCurseFabric.minion.mobs.AnubisWolfMinionEntityRenderer;
 import net.onixary.shapeShifterCurseFabric.networking.ModPacketsS2C;
+import net.onixary.shapeShifterCurseFabric.perk.PerkUtils;
 import net.onixary.shapeShifterCurseFabric.player_form.utils.InstinctUtils;
 import net.onixary.shapeShifterCurseFabric.player_form.utils.TransformManager;
 import net.onixary.shapeShifterCurseFabric.render.form_render.FormRenderUtils;
 import net.onixary.shapeShifterCurseFabric.render.render_layer.FurGradientRenderLayer;
 import net.onixary.shapeShifterCurseFabric.util.*;
 import net.onixary.shapeShifterCurseFabric.util.Verify.AuthClient;
+import net.onixary.shapeShifterCurseFabric.util.test.NetWorkTest;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.HashMap;
@@ -57,6 +63,17 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 
 	public static final FormColorData formColorData = new FormColorData();
 
+	private static int requestAuthCount = 0;
+
+	public static void onRequestAuthFile() {
+		if (requestAuthCount != 0) {
+            if (MinecraftClient.getInstance().player != null) {
+                MinecraftClient.getInstance().player.sendMessage(Text.translatable("message.shapeShifterCurseFabric.authing", requestAuthCount + 1));
+            }
+        }
+		requestAuthCount++;
+	}
+
 	public static MinecraftClient getClient() {
 		return MinecraftClient.getInstance();
 	}
@@ -69,6 +86,13 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 	public static KeyBinding useActiveSkill4PowerKeybind;
 	public static KeyBinding useActiveSkill5PowerKeybind;
 	public static KeyBinding useActiveSkill6PowerKeybind;
+
+	public static KeyBinding scrollActiveSkillKeybind;
+	public static KeyBinding prevActiveSkillKeybind;
+	public static KeyBinding nextActiveSkillKeybind;
+	public static KeyBinding activeSkillKeybind;
+
+	public static KeyBinding openTestUIKeybind;
 
 	public static boolean isBlockingClipAtLedge = false;
 
@@ -223,6 +247,7 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		ItemTooltipWrapping.register();
 		registerEntityModels();
 		ModPacketsS2C.register();
 
@@ -253,6 +278,9 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 			PowerHolderComponent.KEY.get(clientPlayer).getPowers().stream().filter(p -> p instanceof LevitatePower).forEach(p -> ((LevitatePower) p).clientTick(clientPlayer));
 			CustomEdiblePower.OnClientTick(clientPlayer);
 		});
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			requestAuthCount = 0;
+		});
 
 		makeSound = new KeyBinding("key.shape-shifter-curse.make_sound", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_GRAVE_ACCENT, "category." + MOD_ID);
 		ApoliClient.registerPowerKeybinding("make_sound", makeSound);
@@ -265,14 +293,22 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 		// 打开菜单 5->6
 		// 切换能力 6->5
 		// 这2个分配给常用技能 一般推荐绑鼠标侧键上
-		useActiveSkill1PowerKeybind = new KeyBinding("key.shape-shifter-curse.active_skill_1", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
-		useActiveSkill2PowerKeybind = new KeyBinding("key.shape-shifter-curse.active_skill_2", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		useActiveSkill1PowerKeybind = new SkillKeyBinding("key.shape-shifter-curse.active_skill_1", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		useActiveSkill2PowerKeybind = new SkillKeyBinding("key.shape-shifter-curse.active_skill_2", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
 		// 这2个介于常用和非常用之间 尽量别放类似火球这种能力 如果鼠标侧键多也可以绑侧键上
-		useActiveSkill3PowerKeybind = new KeyBinding("key.shape-shifter-curse.active_skill_3", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
-		useActiveSkill4PowerKeybind = new KeyBinding("key.shape-shifter-curse.active_skill_4", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		useActiveSkill3PowerKeybind = new SkillKeyBinding("key.shape-shifter-curse.active_skill_3", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		useActiveSkill4PowerKeybind = new SkillKeyBinding("key.shape-shifter-curse.active_skill_4", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
 		// 这2个给打开UI/可切换功能使用 不推荐给主动能力用 当然 你要是加个自爆技能也能绑这2个按键 推荐绑键盘不太常按的按键上
-		useActiveSkill5PowerKeybind = new KeyBinding("key.shape-shifter-curse.active_skill_5", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
-		useActiveSkill6PowerKeybind = new KeyBinding("key.shape-shifter-curse.active_skill_6", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		useActiveSkill5PowerKeybind = new SkillKeyBinding("key.shape-shifter-curse.active_skill_5", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		useActiveSkill6PowerKeybind = new SkillKeyBinding("key.shape-shifter-curse.active_skill_6", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		// 这个是开测试UI的 开发什么UI就绑哪个UI 发布时记得注释掉
+		openTestUIKeybind = new KeyBinding("key.shape-shifter-curse.open_test_ui", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		// 魔法UI按键 默认不绑定
+		scrollActiveSkillKeybind = new KeyBinding("key.shape-shifter-curse.scroll_active_skill", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		prevActiveSkillKeybind = new KeyBinding("key.shape-shifter-curse.prev_active_skill", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		nextActiveSkillKeybind = new KeyBinding("key.shape-shifter-curse.next_active_skill", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+		activeSkillKeybind = new KeyBinding("key.shape-shifter-curse.active_skill", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category." + ShapeShifterCurseFabric.MOD_ID);
+
 		ApoliClient.registerPowerKeybinding("key.shape-shifter-curse.active_skill_1", useActiveSkill1PowerKeybind);
 		ApoliClient.registerPowerKeybinding("key.shape-shifter-curse.active_skill_2", useActiveSkill2PowerKeybind);
 		ApoliClient.registerPowerKeybinding("key.shape-shifter-curse.active_skill_3", useActiveSkill3PowerKeybind);
@@ -285,6 +321,12 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 		KeyBindingHelper.registerKeyBinding(useActiveSkill4PowerKeybind);
 		KeyBindingHelper.registerKeyBinding(useActiveSkill5PowerKeybind);
 		KeyBindingHelper.registerKeyBinding(useActiveSkill6PowerKeybind);
+		KeyBindingHelper.registerKeyBinding(scrollActiveSkillKeybind);
+		KeyBindingHelper.registerKeyBinding(prevActiveSkillKeybind);
+		KeyBindingHelper.registerKeyBinding(nextActiveSkillKeybind);
+		KeyBindingHelper.registerKeyBinding(activeSkillKeybind);
+
+		KeyBindingHelper.registerKeyBinding(openTestUIKeybind);
 
 		ClientTickEvents.END_CLIENT_TICK.register((client) -> {
 			if (client.player == null) {
@@ -301,11 +343,22 @@ public class ShapeShifterCurseFabricClient implements ClientModInitializer {
 					client.player.sendMessage(Text.translatable("message.shape-shifter-curse.clip_at_ledge.on"), true);
 				}
 			}
+			if (openTestUIKeybind.isPressed()) {
+				FormUpgradeScreen screen = new FormUpgradeScreen(-1, Text.literal(""), PerkUtils.getPlayerNowPerkTree(client.player));
+				client.setScreen(screen);
+			}
+			MagicGUIRender.onClientTick();
 		});
 
 		RegCustomBlock.ClientInit();
+		RegCustomItem.registerModelPredicates();
 		PatronUtils.OnClientInit();
 		AuthClient.init();
+		RegMenuScreen.init();
+
+		BlockEntityRendererFactories.register(RegCustomBlock.FORM_ATTUNER_BLOCK_ENTITY, FormAttunerBeamRenderer::new);
+
+		// NetWorkTest.init();
 	}
 
 	public static ShaderProgram getFurGradientShader() {

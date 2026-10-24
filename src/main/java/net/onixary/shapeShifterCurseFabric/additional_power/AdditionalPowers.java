@@ -21,6 +21,11 @@ public class AdditionalPowers {
     public static final PowerType<?> TOGGLE_CLIP_AT_LEDGE = new PowerTypeReference<>(ShapeShifterCurseFabric.identifier("toggle_clip_at_ledge"));
 
     public static void register() {
+        register(FrostDivePower.createFactory());
+        register(AirJumpPower.createFactory());
+        register(ActionOnShieldBlockPower.createFactory());
+        register(ActionOnCombatHitPower.createFactory());
+        register(TargetPouncePower.createFactory());
         register(AddSustainedInstinctPower.getFactory());
         register(AddImmediateInstinctPower.getFactory());
         register(CrawlingPower.getFactory());
@@ -80,6 +85,8 @@ public class AdditionalPowers {
         register(BypassesLandingEffectsPower.createFactory());
         register(BypassesSteppingEffectsPower.createFactory());
         register(FormCameraBobbingPower.createFactory());
+        register(DisableHurtCameraPower.createFactory());
+        register(DisableWitherHeartsPower.createFactory());
         register(SlowdownPercentPower.createFactory());
         register(ChargePower.createFactory());
         register(ItemStorePower.createFactory());
@@ -94,6 +101,11 @@ public class AdditionalPowers {
         register(TANModifyThirstExhaustionPower.createFactory());
         register(ClimbingEXPower.createFactory());
         register(EatEntityPower.createFactory());
+        register(WolfMinionPower.createFactory());
+        register(WitherIntervalPower.createFactory());
+        register(CocoonLootChancePower.createFactory());
+        register(SurfaceGrapplePower.createFactory());
+        register(WaterExplosionSkillPower.createFactory());
     }
 
     public static PowerFactory<?> register(PowerFactory<?> powerFactory) {
