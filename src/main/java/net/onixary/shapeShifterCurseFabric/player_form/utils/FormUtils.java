@@ -10,6 +10,7 @@ import net.minecraft.util.Pair;
 import net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric;
 import net.onixary.shapeShifterCurseFabric.event.SSCEvent;
 import net.onixary.shapeShifterCurseFabric.integration.origins.component.OriginComponent;
+import net.onixary.shapeShifterCurseFabric.integration.origins.component.PlayerOriginComponent;
 import net.onixary.shapeShifterCurseFabric.integration.origins.origin.Origin;
 import net.onixary.shapeShifterCurseFabric.integration.origins.origin.OriginLayer;
 import net.onixary.shapeShifterCurseFabric.integration.origins.origin.OriginLayers;
@@ -136,6 +137,7 @@ public class FormUtils {
     public static void applyLayer(PlayerEntity player, Pair<Identifier, Identifier> layerData, boolean shouldReload) {
         // 临时 等移除Origins后再重新这部分
         OriginComponent component = ModComponents.ORIGIN.get(player);
+        if (!(component instanceof PlayerOriginComponent playerOriginComponent)) return;
         OriginLayer layer = OriginLayers.getLayer(layerData.getLeft());
         if (layer != null && layerData.getRight() != null) {
             Origin origin = OriginRegistry.get(layerData.getRight());
@@ -143,10 +145,16 @@ public class FormUtils {
                 if (TechnicalFormOrigin == null) {
                     TechnicalFormOrigin = OriginRegistry.get(ShapeShifterCurseFabric.identifier("technical_form"));
                 }
+                // 虽然这样的代码看上去很屎山 但能work 之后移除Origins后就没这个问题了
                 if (shouldReload) {
                     component.setOrigin(layer, TechnicalFormOrigin);
+                    component.setOrigin(layer, origin);
+                } else {
+                    component.setOrigin(layer, origin);
+                    PowerHolderComponent powerComponent = PowerHolderComponent.KEY.get(player);
+                    playerOriginComponent.grantPowersFromOrigin(origin, powerComponent);
+                    playerOriginComponent.revokeRemovedPowers(origin, powerComponent);
                 }
-                component.setOrigin(layer, origin);
                 // component.sync();
             }
         }
@@ -229,6 +237,8 @@ public class FormUtils {
     }
 
     public static void _loadForm(PlayerEntity player, IForm form, boolean shouldReload) {
+        // 这个确实是个问题 如果loadForm给整进去个null 整个形态存储估计就重置了
+        if (form == null) form = RegPlayerForms.ORIGINAL_BEFORE_ENABLE;
         PlayerFormComponent playerFormComponent = PlayerFormComponent.COMPONENT.get(player);
         IForm oldForm = playerFormComponent.nowForm;
         playerFormComponent.setForm(form);

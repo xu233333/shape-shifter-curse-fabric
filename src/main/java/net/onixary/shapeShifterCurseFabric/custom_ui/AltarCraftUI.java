@@ -6,12 +6,16 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.onixary.shapeShifterCurseFabric.blocks.block_entity.AltarBlockEntity;
+import net.onixary.shapeShifterCurseFabric.integration.jei.JEI_Utils;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import static net.onixary.shapeShifterCurseFabric.ShapeShifterCurseFabric.MOD_ID;
 
 public class AltarCraftUI extends HandledScreen<AltarCraftUIHandler> {
 
-    private static final Identifier BACKGROUND = new Identifier(MOD_ID,"textures/gui/altar_craft_ui.png");
+    private static final Identifier BACKGROUND = new Identifier(MOD_ID, "textures/gui/altar_craft_ui.png");
     private static final int WIDTH = 174;
     private static final int HEIGHT = 166;
     private static final int TEXTURE_WIDTH = 256;
@@ -31,8 +35,6 @@ public class AltarCraftUI extends HandledScreen<AltarCraftUIHandler> {
     private int baseX;
     private int baseY;
 
-    // 90,60,54,10
-
     public AltarCraftUI(AltarCraftUIHandler handler, PlayerInventory inventory, Text title) {
         super(handler, inventory, title);
         // 藏的还挺深 要不是我修槽位偏移我都不知道这个
@@ -51,7 +53,26 @@ public class AltarCraftUI extends HandledScreen<AltarCraftUIHandler> {
         super.render(context, mouseX, mouseY, delta);
         this.drawProcess(context);
         this.drawFuel(context);
-        this.drawMouseoverTooltip(context, mouseX, mouseY);
+        if (isOverFuelBar(mouseX - baseX, mouseY - baseY)) {
+            context.drawTooltip(this.textRenderer, Text.translatable(
+                    "gui.shape_shifter_curse.altar.remaining_moondust",
+                    formatMoondust(this.handler.getNowFuel()), formatMoondust(AltarBlockEntity.maxFuel)), mouseX, mouseY);
+        } else {
+            this.drawMouseoverTooltip(context, mouseX, mouseY);
+        }
+        if (JEI_Utils.isJEILoaded && isHoveringProcessBar(mouseX, mouseY)) {
+            context.drawTooltip(this.textRenderer, Text.translatable("jei.tooltip.show.recipes"), mouseX, mouseY);
+        }
+    }
+
+    static boolean isOverFuelBar(int localX, int localY) {
+        return localX >= FUEL_BAR_ORIG_X && localX < FUEL_BAR_ORIG_X + FUEL_BAR_W
+                && localY >= FUEL_BAR_ORIG_Y && localY < FUEL_BAR_ORIG_Y + FUEL_BAR_H;
+    }
+
+    static String formatMoondust(int fuel) {
+        return BigDecimal.valueOf(fuel).divide(BigDecimal.valueOf(800), 2, RoundingMode.HALF_UP)
+                .stripTrailingZeros().toPlainString();
     }
 
     @Override
@@ -80,5 +101,19 @@ public class AltarCraftUI extends HandledScreen<AltarCraftUIHandler> {
             int FuelWidth = (int) (FUEL_BAR_W * ((float) uiHandler.getNowFuel() / (float) maxFuel));
             context.drawTexture(BACKGROUND, baseX + FUEL_BAR_ORIG_X, baseY + FUEL_BAR_ORIG_Y, FUEL_BAR_FULL_X, FUEL_BAR_FULL_Y, FuelWidth, FUEL_BAR_H, TEXTURE_WIDTH, TEXTURE_HEIGHT);
         }
+    }
+
+    private boolean isHoveringProcessBar(double mouseX, double mouseY) {
+        return mouseX >= baseX + PROCESS_BAR_ORIG_X && mouseX < baseX + PROCESS_BAR_ORIG_X + PROCESS_BAR_W
+                && mouseY >= baseY + PROCESS_BAR_ORIG_Y && mouseY < baseY + PROCESS_BAR_ORIG_Y + PROCESS_BAR_H;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (JEI_Utils.isJEILoaded && button == 0 && isHoveringProcessBar(mouseX, mouseY)) {
+            JEI_Utils.openJEIAltarRecipeScreen();
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 }

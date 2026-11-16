@@ -2,6 +2,7 @@ package net.onixary.shapeShifterCurseFabric.player_form.forms;
 
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.Vec3d;
@@ -16,9 +17,12 @@ import net.onixary.shapeShifterCurseFabric.player_animation.v3.AnimUtils;
 import net.onixary.shapeShifterCurseFabric.player_form.NormalSubForm;
 import net.onixary.shapeShifterCurseFabric.player_form.RegPlayerForms;
 import net.onixary.shapeShifterCurseFabric.player_form.utils.ModifyCapeRender;
+import net.onixary.shapeShifterCurseFabric.util.integration.AnimItem;
+import net.onixary.shapeShifterCurseFabric.util.integration.CarryOnIntegration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.UUID;
 
 public class Form_Bat3_Sub_Avali extends NormalSubForm implements ModifyCapeRender {
@@ -39,6 +43,8 @@ public class Form_Bat3_Sub_Avali extends NormalSubForm implements ModifyCapeRend
         this.removePower(ShapeShifterCurseFabric.identifier("form_camera_bobbing_bat"));
         this.removePower(ShapeShifterCurseFabric.identifier("form_bat_3_block_attach"));
         this.removePower(ShapeShifterCurseFabric.identifier("no_render_arm"));
+        this.removePower(ShapeShifterCurseFabric.identifier("form_bat_sound_key"));
+        this.addPower(ShapeShifterCurseFabric.identifier("sub_form_avali_sound_key"));
         this.addPower(ShapeShifterCurseFabric.identifier("sub_form_avali_side_block_attach"));
         this.addPower(ShapeShifterCurseFabric.identifier("sub_form_avali_step_sound"));
         this.addPower(ShapeShifterCurseFabric.identifier("sub_form_avali_water_slowness"));
@@ -101,10 +107,17 @@ public class Form_Bat3_Sub_Avali extends NormalSubForm implements ModifyCapeRend
     public static final AbstractAnimStateController SHIELDING_CONTROLLER = new OneAnimController(ANIM_SHIELDING);
     public static final AbstractAnimStateController SWIM_CONTROLLER = new SwimAnimController(ANIM_FLOAT, null);
 
+    public static final AbstractAnimStateController USE_VANILLA_CONTROLLER = new OneAnimController((AnimUtils.AnimationHolderData) null);
+
     @Override
     public @Nullable AbstractAnimStateController getAnimStateController(PlayerEntity player, AnimSystem.AnimSystemData animSystemData, @NotNull Identifier animStateID) {
         @Nullable AnimStateEnum animStateEnum = AnimStateEnum.getStateEnum(animStateID);
+        Item holdItem = player.getMainHandStack().getItem();
+        List<AnimItem.AnimItemTag> animItemTags = AnimItem.getAnimItemTags(holdItem);
         if (animStateEnum != null) {
+            if ((CarryOnIntegration.isInCarryingAnimation(player) || (animItemTags != null && !animItemTags.isEmpty() && animItemTags.contains(AnimItem.NoAnimItemTag)))) {
+                return USE_VANILLA_CONTROLLER;
+            }
             switch (animStateEnum) {
                 case ANIM_STATE_FALL:
                     return FALL_CONTROLLER;

@@ -44,12 +44,35 @@ public final class AltarRecipeCheck {
     }
 
     @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
+    public void morphscaleCatalyst(TestContext context) {
+        AltarBlockEntity altar = new AltarBlockEntity(BlockPos.ORIGIN, RegCustomBlock.ALTAR_BLOCK.getDefaultState());
+        altar.setWorld(context.getWorld());
+        altar.setStack(0, new ItemStack(Items.DIAMOND_CHESTPLATE));
+        var recipe = RegBuiltinAlterRecipe.MorphScaleArmorRecipe;
+        check(!recipe.matches(altar, context.getWorld()), "Morphscale upgrade requires its catalyst");
+        altar.setStack(9, new ItemStack(Items.NETHER_STAR));
+        check(!recipe.matches(altar, context.getWorld()), "A nether star no longer substitutes for the core");
+        altar.setStack(9, new ItemStack(RegCustomItem.MORPHSCALE_CATALYST_CORE));
+        check(recipe.matches(altar, context.getWorld()), "New core enables equipment morphscale upgrades");
+        ItemStack output = recipe.craft(altar, context.getWorld().getRegistryManager());
+        check(output.isOf(Items.DIAMOND_CHESTPLATE) && output.getOrCreateNbt().getBoolean(
+                net.onixary.shapeShifterCurseFabric.additional_power.IsMorphScaleItemCondition.IsMorphScaleArmorTagName),
+                "Output retains equipment and gains the morphscale flag");
+        recipe.consumeInputs(altar);
+        check(altar.getStack(0).isEmpty(), "Equipment input consumed");
+        check(altar.getStack(9).isOf(RegCustomItem.MORPHSCALE_CATALYST_CORE), "Morphscale catalyst retained");
+        altar.setStack(0, output);
+        check(!recipe.matches(altar, context.getWorld()), "Already upgraded equipment is rejected");
+        context.complete();
+    }
+
+    @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
     public void recipes(TestContext context) {
         for (int[] example : new int[][]{{5, 5}, {10, 10}, {30, 16}, {60, 9}, {5, 0}}) {
             AltarShapelessRecipe recipe = recipe(example[0], example[1]);
             int total = 0;
             for (int tick = 0; tick < recipe.recipeTime(); tick++) {
-                int cost = recipe.fuelUsage(tick);
+                int cost = recipe.fuelUsage();
                 check(cost >= 0, "Fuel must never be created");
                 total += cost;
             }
@@ -98,7 +121,7 @@ public final class AltarRecipeCheck {
                 {"ingredients":[{"item":"minecraft:stick"}],"result":{"item":"minecraft:emerald"},
                  "time":100,"fuel_cost":3}
                 """).getAsJsonObject());
-        check(legacy.fuelUsage(0) == 3 && legacy.totalFuelUsage() == 300, "Legacy per-tick fuel remains compatible");
+        check(legacy.fuelUsage() == 3 && legacy.totalFuelUsage() == 300, "Legacy per-tick fuel remains compatible");
 
         // Check the actual loaded data, not only the vanilla-item fixtures above.
         int upgradeMappings = 0;

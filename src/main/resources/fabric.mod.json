@@ -73,10 +73,16 @@
       "contact": {
         "github": "https://github.com/Sh1roCu"
       }
+    },
+    {
+      "name": "bedulge",
+      "contact": {
+        "github": "https://github.com/bedulge-sub"
+      }
     }
   ],
 
-  "license": "MIT AND CC-BY-NC-4.0 AND CC-BY-SA-2.0",
+  "license": "MIT AND CC-BY-NC-4.0 AND CC-BY-SA-2.0 AND LicenseRef-Nefumi-Avali-Sounds",
   "icon": "assets/shape-shifter-curse/icon.png",
 
   "environment": "*",
@@ -139,6 +145,12 @@
         "depends": [
           "curios"
         ]
+      },
+      "accessories": {
+        "priority": 3000,
+        "depends": [
+          "accessories"
+        ]
       }
     }
   },
@@ -149,7 +161,6 @@
     "fabric": ">=0.83.0",
     "minecraft": "1.20.1",
     "pehkui": ">=3.7.8",
-    "satin": ">=1.14.0",
     "geckolib": ">=4.0.0"
   },
   "breaks": {
